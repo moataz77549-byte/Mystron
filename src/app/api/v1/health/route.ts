@@ -19,8 +19,8 @@ export async function GET() {
 
   const serverConfigured = Boolean(
     process.env.SUPABASE_SERVICE_ROLE_KEY &&
-      process.env.RATE_LIMIT_SECRET &&
-      process.env.RATE_LIMIT_SECRET.length >= 32,
+    process.env.RATE_LIMIT_SECRET &&
+    process.env.RATE_LIMIT_SECRET.length >= 32,
   );
   let api: "unconfigured" | "unavailable" | "ready" = "unconfigured";
   if (serverConfigured && databaseConfigured()) {
