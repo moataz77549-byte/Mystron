@@ -27,7 +27,9 @@ vi.mock("../src/lib/supabase", () => ({
       select: () => ({
         limit: async () => {
           state.privilegedCalls++;
-          return { error: state.privilegedReady ? null : { message: "failed" } };
+          return {
+            error: state.privilegedReady ? null : { message: "failed" },
+          };
         },
       }),
     }),
@@ -47,7 +49,7 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("read-only service readiness", () => {
-  it("returns 200 only when public and privileged connections respond", async () => {
+  it("returns 200 for healthy public and privileged clients", async () => {
     const response = await GET();
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
@@ -63,7 +65,7 @@ describe("read-only service readiness", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store");
   });
 
-  it("returns 503 when the configured privileged key cannot query", async () => {
+  it("returns 503 when the privileged query fails", async () => {
     state.privilegedReady = false;
     const response = await GET();
     expect(response.status).toBe(503);
@@ -73,7 +75,7 @@ describe("read-only service readiness", () => {
     });
   });
 
-  it("does not pretend an absent server secret is a healthy API", async () => {
+  it("returns 503 when a server secret is missing", async () => {
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
     const response = await GET();
     expect(response.status).toBe(503);
