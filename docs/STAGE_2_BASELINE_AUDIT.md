@@ -1,0 +1,11 @@
+# Stage 2 baseline audit — 2026-10-14
+
+Base: stage-1-foundation commit 2914f5b5e428f5056af2ae8719abc86ab5a7ae7d. Both push and PR CI succeeded, verified through GitHub Actions. main still contains the initial README only; Stage 1 PR #1 is draft and unmerged. User explicitly authorized Stage 2 from the implemented foundation; no automatic merge was performed.
+
+Verified code: Next.js App Router 16.4 / React 19.3 / strict TS, Arabic design tokens/local fonts, responsive public shells, six API routes, anonymous content repositories, server verified identity/role guard, shared SQL limiter, PIN setup and operator-only owner bootstrap. Real Supabase project ttvasynaxkkcwrmvlorg has the Stage 1 schema/RLS, six categories/four role names, one private-ready Storage foundation and no articles/users. Old app/radio data, cron and buckets were removed; nine retired Edge records persist with 410 bodies.
+
+Gaps: all editorial CRUD is absent, article content is plain text, media upload is disabled, no scheduler/comments/view recording/search body index exists. Auth user/owner bootstrap has not completed. Vercel is unconnected and application service-role/rate/pepper secrets are not configured; API/auth writes fail closed. These are verified gaps, not completion claims inferred from README.
+
+Supabase browser fallback was authorized for missing management operations, but browser login is at Google account verification/recovery. No signed-in dashboard was verified. Permanent Edge deletion/project rename/legacy custom-secret review are blocked on that session; existing operational content retirement is verified and does not block independent CMS implementation.
+
+Decisions: reuse posts/authors/categories/media/comments/revisions/audit tables; extend fields only. Authenticated CMS writes use narrow transaction RPCs with confirmed auth.uid + database roles and optimistic versions. Authors cannot publish. Originals/variants use a private bucket and gated image endpoints. Structured editor JSON is validated/rendered on the server. Supabase Cron can run the same SQL publication engine without dependence on Vercel plan minute precision; dynamic public pages reflect publication immediately. Public write endpoints stay server-only and use shared limits; secure server configuration is still required.

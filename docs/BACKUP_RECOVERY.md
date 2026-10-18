@@ -1,0 +1,9 @@
+# Backup and recovery
+
+Verified backup status: unavailable through the current connection. No successful scheduled PostgreSQL export, Storage copy or restore rehearsal has been observed. `/admin/backups` says so and exposes no destructive restore button. Supabase backup/PITR availability must be checked against the actual project plan; do not promise a recovery point without evidence.
+
+Operational policy to activate: encrypted daily PostgreSQL backups outside the primary project, 30-day rolling retention, restricted owner/delegated operator access; independently copy Storage object bytes and metadata with checksums. A PostgreSQL backup alone does not back up Storage file bytes. Preserve Auth configuration, allowed redirects, bucket policies and a secure external secret inventory without placing keys in SQL dumps/Git.
+
+Restore procedure: owner-authorized incident/change record; verify backup age/checksums; provision a separate nonproduction project; restore schema/data and Storage bytes under least privilege; restore required Auth configuration through supported tools; rotate any exposed credentials; run migrations/type generation/RLS/owner and publishing tests; compare counts and media checksums; verify private assets, drafts, redirects and scheduled jobs. Pause scheduling during restore rehearsal to avoid accidental publishing. Validate on the separate project before a separately reviewed production cutover. Preserve the original database for rollback and do not overwrite production as a test.
+
+Responsibility: OWNER authorizes restore; a nominated operator performs and documents it. The present stage documents and displays this policy but does not claim automated backups or successful restore rehearsal. Additional project/storage permissions and backup destination are required for an actual rehearsal.

@@ -1,0 +1,11 @@
+# Knowledge pipeline
+
+Public published posts are the only visitor knowledge source. Article content extraction uses the existing normalized plain-text field from safe editor JSON. NFC chunking preserves original Arabic quotations; search normalization removes diacritics/tatweel and normalizes alef/ya variants separately. Chunks target 1400 characters with 180-character overlap; input is bounded to 250000 characters.
+
+The post-change trigger removes cached summaries/chunks synchronously and enqueues a deduplicated post/version job. A persistent worker processes at most 16 chunks per request with a durable model-bound cursor, staged vectors and fenced leases. Final replacement is atomic and checks the current published version. Disabled/unconfigured AI or exhausted quota defers work instead of consuming repeated failure attempts. Errors use backoff and bounded dead-letter handling. Reindexing is an owner-sensitive administrative action.
+
+Tables: ai_embedding_profiles, ai_chunks, ai_index_staging, automation_jobs and private.ai_summary_cache. pgvector dimensions are discovered from actual provider vectors and validated per model namespace. Chunk metadata includes source post/version, index, text/hash, model, URL and indexing/publication timestamps. There is no fixed invented embedding dimension.
+
+Retrieval combines normalized PostgreSQL FTS and cosine similarity with reciprocal-rank scoring, bounded to six returned passages. Every query joins current public publication state and version, so unpublishing/private visibility/deletion immediately excludes stale knowledge even before cleanup. Provider errors fall back to keyword retrieval. The regular search page also offers an optional semantic retrieval action while preserving ordinary FTS/filter/pagination.
+
+Mixed-dimension storage currently uses exact vector scoring plus model/FTS indexes. HNSW is intentionally deferred until a real model/dimension and corpus size justify a partial index; assess query plans before large-scale activation. No fabricated corpus or production embeddings have been inserted. Indexing jobs require the deployed persistent bot worker even when Telegram notifications are not used; independent worker packaging can be added later.

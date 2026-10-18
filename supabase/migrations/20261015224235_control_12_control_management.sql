@@ -1,0 +1,52 @@
+
+create or replace function private.validate_setting(p_key text,p_value jsonb) returns void language plpgsql security definer set search_path='' as $$
+declare item jsonb;entry jsonb;asset uuid;k text;expected jsonb;
+begin
+
+ if not (p_value ?& (case p_key when 'identity' then array['name','description','footer','logo_asset_id','favicon_asset_id','og_asset_id','palette','dark_palette','font','default_theme','socials'] when 'home' then array['sections'] when 'publishing' then array['default_comments','comments_close_days','timezone','default_visibility','view_retention_days'] when 'comments' then array['enabled','pre_moderation','replies','max_depth','limit','window_seconds','blocked_words','blocked_emails'] when 'seo' then array['title_suffix','description'] when 'security' then array['session_max_age_minutes','event_retention_days','audit_retention_days'] when 'media' then array['max_upload_bytes','allow_gif','webp_quality'] when 'maintenance' then array['enabled','message','until'] else array[]::text[] end)) then raise exception 'INCOMPLETE_SETTING';end if; expected=case p_key when 'identity' then '{"name":"string","description":"string","footer":"string","palette":"object","dark_palette":"object","font":"string","default_theme":"string","socials":"array"}'::jsonb when 'home' then '{"sections":"array"}'::jsonb when 'publishing' then '{"default_comments":"boolean","comments_close_days":"number","timezone":"string","default_visibility":"string","view_retention_days":"number"}'::jsonb when 'comments' then '{"enabled":"boolean","pre_moderation":"boolean","replies":"boolean","max_depth":"number","limit":"number","window_seconds":"number","blocked_words":"array","blocked_emails":"array"}'::jsonb when 'seo' then '{"title_suffix":"string","description":"string"}'::jsonb when 'security' then '{"session_max_age_minutes":"number","event_retention_days":"number","audit_retention_days":"number"}'::jsonb when 'media' then '{"max_upload_bytes":"number","allow_gif":"boolean","webp_quality":"number"}'::jsonb when 'maintenance' then '{"enabled":"boolean","message":"string"}'::jsonb else '{}'::jsonb end;
+ if exists(select 1 from jsonb_each_text(expected) e where jsonb_typeof(p_value->e.key) is distinct from e.value) then raise exception 'INVALID_SETTING_TYPE';end if;
+
+
+ if jsonb_typeof(p_value)<>'object' or octet_length(p_value::text)>100000 then raise exception 'INVALID_SETTING';end if;
+ if p_key='identity' then
+ if not private.allowed_keys(p_value,array['name','description','footer','logo_asset_id','favicon_asset_id','og_asset_id','palette','dark_palette','font','default_theme','socials']) or coalesce(length(p_value->>'name'),0) not between 1 and 80 or length(p_value->>'description')>500 or length(p_value->>'footer')>500 or p_value->>'font' not in ('IBM Plex Sans Arabic','Noto Naskh Arabic') or p_value->>'default_theme' not in ('system','light','dark') or not private.allowed_keys(p_value->'palette',array['navy','gold','ivory','teal','burgundy']) or not private.allowed_keys(p_value->'dark_palette',array['background','foreground','surface','muted','border']) then raise exception 'INVALID_IDENTITY';end if;
+ if (select count(*) from jsonb_each(p_value->'palette'))<>5 or (select count(*) from jsonb_each(p_value->'dark_palette'))<>5 or exists(select 1 from jsonb_each_text(p_value->'palette') x where (x.value is null or x.value !~ '^#[a-fA-F0-9]{6}$')) or exists(select 1 from jsonb_each_text(p_value->'dark_palette') x where (x.value is null or x.value !~ '^#[a-fA-F0-9]{6}$')) then raise exception 'INVALID_PALETTE';end if;
+ if jsonb_typeof(p_value->'socials')<>'array' or jsonb_array_length(p_value->'socials')>10 then raise exception 'INVALID_SOCIALS';end if;
+ for item in select value from jsonb_array_elements(p_value->'socials') loop if not private.allowed_keys(item,array['label','url']) or coalesce(length(item->>'label'),0) not between 1 and 50 or not private.safe_url(item->>'url') then raise exception 'INVALID_LINK';end if;end loop;
+ for k in select unnest(array['logo_asset_id','favicon_asset_id','og_asset_id']) loop asset=nullif(p_value->>k,'')::uuid;if asset is not null then if not exists(select 1 from public.media_assets where id=asset and deleted_at is null and(owner_id=auth.uid() or private.permission_scope_for(auth.uid(),'media.manage')='all')) then raise exception 'INVALID_MEDIA';end if;end if;end loop;
+ elsif p_key='home' then
+ if not private.allowed_keys(p_value,array['sections']) or jsonb_typeof(p_value->'sections')<>'array' or jsonb_array_length(p_value->'sections')>20 then raise exception 'INVALID_HOME';end if;
+ for item in select value from jsonb_array_elements(p_value->'sections') loop
+ if not(item ?& array['id','type','title','enabled','hide_empty','limit']) or jsonb_typeof(item->'id')<>'string' or jsonb_typeof(item->'title')<>'string' or not private.allowed_keys(item,array['id','type','title','description','enabled','hide_empty','limit','category_id','post_ids']) or item->>'type' not in ('hero','featured','latest','popular','category','manual') or length(item->>'title')>100 or coalesce((item->>'limit')::int,0) not between 1 and 24 or jsonb_typeof(item->'enabled')<>'boolean' or jsonb_typeof(item->'hide_empty')<>'boolean' then raise exception 'INVALID_HOME_SECTION';end if;
+ perform (item->>'id')::uuid;
+ if item->>'type'='category' and not exists(select 1 from public.categories where id=(item->>'category_id')::uuid and is_active and deleted_at is null) then raise exception 'INVALID_CATEGORY';end if;
+ if item?'post_ids' then if jsonb_typeof(item->'post_ids')<>'array' or jsonb_array_length(item->'post_ids')>24 or exists(select 1 from jsonb_array_elements_text(item->'post_ids') i where not exists(select 1 from public.posts where id=i::uuid and status='published' and visibility='public' and deleted_at is null and published_at<=now())) then raise exception 'INVALID_CURATED_POST';end if;end if;
+ end loop;
+ elsif p_key='publishing' then
+ if not private.allowed_keys(p_value,array['default_comments','comments_close_days','timezone','default_visibility','view_retention_days']) or jsonb_typeof(p_value->'default_comments')<>'boolean' or coalesce((p_value->>'comments_close_days')::int,-1) not between 0 and 3650 or p_value->>'timezone'<>'Asia/Aden' or p_value->>'default_visibility' not in ('public','private') or (p_value->>'view_retention_days')::int<>30 then raise exception 'INVALID_PUBLISHING';end if;
+ elsif p_key='comments' then
+ if not private.allowed_keys(p_value,array['enabled','pre_moderation','replies','max_depth','limit','window_seconds','blocked_words','blocked_emails']) or jsonb_typeof(p_value->'enabled')<>'boolean' or jsonb_typeof(p_value->'pre_moderation')<>'boolean' or jsonb_typeof(p_value->'replies')<>'boolean' or coalesce((p_value->>'max_depth')::int,-1) not between 0 and 3 or coalesce((p_value->>'limit')::int,0) not between 1 and 30 or coalesce((p_value->>'window_seconds')::int,0) not between 60 and 3600 or jsonb_array_length(p_value->'blocked_words')>100 or jsonb_array_length(p_value->'blocked_emails')>100 then raise exception 'INVALID_COMMENT_POLICY';end if;
+ for item in select value from jsonb_array_elements(p_value->'blocked_words') loop if jsonb_typeof(item)<>'string' or length(item#>>'{}') not between 1 and 80 then raise exception 'INVALID_BLOCKED_WORD';end if;end loop;
+ for item in select value from jsonb_array_elements(p_value->'blocked_emails') loop if jsonb_typeof(item)<>'string' or (item#>>'{}') !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' then raise exception 'INVALID_BLOCKED_EMAIL';end if;end loop;
+ elsif p_key='seo' then
+ if not private.allowed_keys(p_value,array['title_suffix','description']) or length(p_value->>'title_suffix')>80 or length(p_value->>'description')>500 then raise exception 'INVALID_SEO';end if;
+ elsif p_key='security' then
+ if not private.allowed_keys(p_value,array['session_max_age_minutes','event_retention_days','audit_retention_days']) or coalesce((p_value->>'session_max_age_minutes')::int,0) not between 5 and 10080 or coalesce((p_value->>'event_retention_days')::int,0) not between 30 and 365 or coalesce((p_value->>'audit_retention_days')::int,0) not between 90 and 3650 then raise exception 'INVALID_SECURITY_POLICY';end if;
+ elsif p_key='media' then
+ if not private.allowed_keys(p_value,array['max_upload_bytes','allow_gif','webp_quality']) or coalesce((p_value->>'max_upload_bytes')::int,0) not between 262144 and 5242880 or jsonb_typeof(p_value->'allow_gif')<>'boolean' or coalesce((p_value->>'webp_quality')::int,0) not between 40 and 95 then raise exception 'INVALID_MEDIA_POLICY';end if;
+ elsif p_key='maintenance' then
+ if not private.allowed_keys(p_value,array['enabled','message','until']) or jsonb_typeof(p_value->'enabled')<>'boolean' or coalesce(length(p_value->>'message'),0) not between 1 and 500 then raise exception 'INVALID_MAINTENANCE';end if;perform nullif(p_value->>'until','')::timestamptz;
+ else raise exception 'UNKNOWN_SETTING';end if;
+end $$;
+revoke all on function private.validate_setting(text,jsonb) from public,anon,authenticated;
+create or replace function public.admin_update_setting(p_key text,p_value jsonb,p_expected_version bigint) returns bigint language plpgsql security definer set search_path='' as $$
+declare item public.site_settings;new_version bigint;
+begin
+ perform private.require_permission(case when p_key='security' then 'security.manage' when p_key='maintenance' then 'maintenance.manage' else 'settings.update' end);
+ perform private.validate_setting(p_key,p_value);select * into item from public.site_settings where key=p_key for update;
+ if not found or item.version<>p_expected_version then raise exception 'VERSION_CONFLICT' using errcode='40001';end if;
+ update public.site_settings set value=p_value,version=version+1,is_public=p_key in ('identity','home','seo','maintenance') where key=p_key returning version into new_version;
+ if p_key='identity' then update public.media_assets set visibility='public' where id in(nullif(p_value->>'logo_asset_id','')::uuid,nullif(p_value->>'favicon_asset_id','')::uuid,nullif(p_value->>'og_asset_id','')::uuid);end if;
+ insert into public.audit_logs(actor_id,action,entity_type,entity_id,metadata) values(auth.uid(),'SETTINGS_UPDATED','setting',p_key,jsonb_build_object('version',new_version,'changed_keys',(select jsonb_agg(k) from jsonb_object_keys(p_value) k)));
+ insert into public.security_events(actor_id,event_type,result) values(auth.uid(),'SETTINGS_UPDATED','success');return new_version;
+end $$;

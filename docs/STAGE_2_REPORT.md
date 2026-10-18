@@ -1,0 +1,27 @@
+# Stage 2 implementation report — 2026-10-14
+
+Status: implementation and local verification completed progressively; external activation and final GitHub CI are tracked below. This report does not declare production completion or Stage 3 readiness.
+
+Repository: https://github.com/Mtzallqmy/Maystroon. Branch: stage-2-advanced-cms, based on implemented Stage 1 commit 2914f5b5e428f5056af2ae8719abc86ab5a7ae7d. main still contains the baseline README and Stage 1 PR #1 remains unmerged; no protected branch or review was bypassed.
+
+Implemented: authenticated CMS dashboard; post creation/editing/soft deletion/restoration/duplication/archive; atomic bulk transitions; Tiptap Arabic studio and safe JSON renderer; optimistic autosave/local draft recovery/revision restore; category and independent author management/redirects; private media upload/metadata/crop/variants/static templates; publishing and scheduling; guest comments/moderation/reports; server view deduplication/daily aggregates; Arabic full-text search; public author/article pages; SEO/JSON-LD/share links; ticker/article advertisements; versioned public/admin APIs and OpenAPI specification.
+
+Live Supabase project ttvasynaxkkcwrmvlorg: CMS and scheduler migrations applied successfully; six categories remain, zero actual posts and zero Auth users. All public/private application tables have RLS. editorial bucket is private and permits inspected image types including GIF. Two pg_cron jobs are active. Running the publishing engine against the empty live database returned zero; no test articles/users were created there.
+
+Actual tests so far: 38 unit/PostgreSQL integration tests passed; production build and TypeScript/lint checks passed during implementation. Desktop and mobile browser workflows each passed using local Auth/Storage protocol fixtures and real PGlite SQL migrations. Those tests exercise upload/crop/create/autosave/publish/comment moderation/search/unpublish, but are not proof of live Supabase Auth ownership or live Vercel deployment. Final rerun/CI details are added after the branch upload.
+
+Security advisors: private deny-all tables report INFO by design. CMS mutation RPCs intentionally use SECURITY DEFINER with explicit verified-user/role/ownership checks and no public grants; Supabase flags this pattern for review. Public view aggregate RPCs were changed to SECURITY INVOKER/RLS, and overlapping media/revision read policies were merged. Exact remaining advisory counts are recorded after the final review; do not infer that the advisor dashboard is entirely clear.
+
+External blockers: no verified owner Auth UUID exists, so bootstrap is intentionally open but operator-only and no owner is assigned. Application SUPABASE_SERVICE_ROLE_KEY, RATE_LIMIT_SECRET and PIN_PEPPER are not configured; live public write/rate-limited API/private media downloads fail closed until they are. Vercel connection/project/environment permissions are unavailable, so no preview URL or production deployment has been claimed. Browser dashboard login reached a Google password-change requirement; only the user can complete that credential change.
+
+Remaining legacy management: old app/radio data, Storage buckets and Cron were retired in Stage 1. Nine Edge records still exist with inert 410 bodies; permanent record/old-version deletion, custom Edge secret review and project display-name change require the authenticated dashboard. This is not reported as complete deletion of every legacy object.
+
+Deferred beyond this stage: full administrator/role management, animated templates, numbered automatic footnotes, advanced Arabic stemming/semantic search, physical media purge and native Android/BotKeep integration. Existing simple note blocks/static templates/token search are described accurately in their guides.
+
+Manual activation: complete dashboard login; review/remove obsolete Edge records/custom secrets; create and verify the owner Supabase Auth account, confirm its exact UUID and perform trusted one-time bootstrap; set server secrets in deployment settings; connect the official repository to Vercel and verify preview URLs/secure upload limits; rerun live authenticated acceptance tests before merge or production. Never paste secrets, passwords or OTPs into chat or GitHub.
+
+Stage 3 has not started. Production acceptance remains blocked until verified owner identity, server configuration, deployment and live authenticated checks are complete.
+
+Final pre-upload verification: production build, TypeScript, lint, browser secret scan and npm audit --omit=dev passed (zero reported production vulnerabilities). The expanded desktop/mobile workflows also cover static PNG template export, Open Graph metadata, repeated HTTP view recording and protected Cron fallback/cancel-schedule. Supabase migrations now include public_sharing_preferences and editorial_controls. Category bulk transfer is non-destructive: it changes the primary category when applicable, adds the target association and retains the old association as a secondary category. Individual association removal remains in the post editor.
+
+Verified Supabase Cron run: maystroon-publish-due succeeded on the empty database. Security advisor review found 12 authenticated SECURITY DEFINER command notices (intentional explicit authorization); four INFO private deny-all tables; performance review found only unused-index INFO notices. No anonymous SECURITY DEFINER aggregates remain.

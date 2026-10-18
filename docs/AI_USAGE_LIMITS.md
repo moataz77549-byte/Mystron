@@ -1,0 +1,9 @@
+# Usage and cost controls
+
+`ai_reserve` serializes reservations in PostgreSQL and checks global daily/monthly request limits, daily token budget, session/visitor and administrative daily limits. Temporary public session IDs are random HttpOnly/SameSite cookies (one day); subjects are HMAC hashes. Trusted ingress fingerprints rotate daily. A separate application limiter allows six public AI requests per minute. Non-Vercel ingress must provide an equivalent trusted address boundary; never trust arbitrary caller forwarding headers.
+
+Chat, search, editorial tools, model tests and embeddings reserve before external requests. Index batches also consume quota and defer when exhausted. Reservation estimates conservatively count UTF-8 bytes plus an output ceiling; a generated answer can reserve 50000 context bytes. This can reject a request well before exact provider tokens would. Embedding calls are separate estimated records; no token totals are invented when the provider abstraction does not report them.
+
+Usage records store provider/model/type, input/output token totals if reported, reported/estimated accuracy, latency, status, error code, timestamp and nullable cost. Finalization is service-only and idempotent. Reported generation totals replace the initial token reservation; otherwise the conservative reservation remains. SSE usage is estimated when no final provider totals are available. Failed reservations remain budgeted to avoid repeated unmeasured charges.
+
+Daily limits reset at UTC day boundaries, monthly request limits at UTC month boundaries. There is no reliable currency ceiling or monthly token budget implemented: provider prices are unknown, so estimated_cost remains null. Configure provider-side hard billing caps before activation. Counts represent requests/tokens, never unique people. Usage metadata is retained 90 days by the scheduled retention job; no full prompts/transcripts are logged.

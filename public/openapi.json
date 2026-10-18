@@ -1,0 +1,4040 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MAYSTROON Public API",
+    "version": "1.3.0",
+    "description": "Published public content and verified-session administration. Android consumers use JSON; write requests send the configured site Origin. Optional grounded AI, verified-session Telegram linking and signed automation gateway."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "operationId": "health",
+        "summary": "health",
+        "responses": {
+          "200": {
+            "description": "JSON public data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_QUERY"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Database or server unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/categories": {
+      "get": {
+        "operationId": "categories",
+        "summary": "categories",
+        "responses": {
+          "200": {
+            "description": "JSON public data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_QUERY"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Database or server unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/posts": {
+      "get": {
+        "operationId": "posts",
+        "summary": "posts",
+        "responses": {
+          "200": {
+            "description": "JSON public data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_QUERY"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Database or server unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 12
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "description": "Arabic or Latin database slug"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["newest", "oldest"],
+              "default": "newest"
+            }
+          },
+          {
+            "name": "author",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/posts/{slug}": {
+      "get": {
+        "operationId": "posts_slug",
+        "summary": "posts/{slug}",
+        "responses": {
+          "200": {
+            "description": "JSON public data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_QUERY"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Database or server unavailable"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/authors": {
+      "get": {
+        "operationId": "authors",
+        "summary": "authors",
+        "responses": {
+          "200": {
+            "description": "JSON public data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_QUERY"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Database or server unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 12
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/site/settings": {
+      "get": {
+        "operationId": "site_settings",
+        "summary": "site/settings",
+        "responses": {
+          "200": {
+            "description": "JSON public data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_QUERY"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Database or server unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/search": {
+      "get": {
+        "summary": "search published posts",
+        "operationId": "search_published_posts",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 12
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "description": "Arabic or Latin database slug"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["newest", "oldest"],
+              "default": "newest"
+            }
+          },
+          {
+            "name": "author",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/categories/{slug}/posts": {
+      "get": {
+        "summary": "category posts",
+        "operationId": "category_posts",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 12
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["newest", "oldest"],
+              "default": "newest"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/authors/{slug}": {
+      "get": {
+        "summary": "public author",
+        "operationId": "public_author",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/trending": {
+      "get": {
+        "summary": "public view aggregates",
+        "operationId": "public_view_aggregates",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 30,
+              "default": 7
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/posts/{id}/comments": {
+      "get": {
+        "summary": "approved comments",
+        "operationId": "approved_comments",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "submit moderated guest comment",
+        "operationId": "submit_moderated_guest_comment",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "body"],
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 5000,
+                    "description": "Plain text; HTTP links and HTML rejected"
+                  },
+                  "parent_id": {
+                    "type": ["string", "null"],
+                    "format": "uuid"
+                  },
+                  "website": {
+                    "const": ""
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/posts/{id}/views": {
+      "post": {
+        "summary": "record daily bounded view",
+        "operationId": "record_daily_bounded_view",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/comments/{id}/reports": {
+      "post": {
+        "summary": "report approved comment",
+        "operationId": "report_approved_comment",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["reason"],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 1000
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/posts": {
+      "post": {
+        "summary": "admin posts",
+        "operationId": "admin_posts",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Command"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/transitions": {
+      "post": {
+        "summary": "admin transitions",
+        "operationId": "admin_transitions",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Command"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/revisions": {
+      "post": {
+        "summary": "admin revisions",
+        "operationId": "admin_revisions",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Command"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/categories": {
+      "post": {
+        "summary": "admin categories",
+        "operationId": "admin_categories",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Command"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/authors": {
+      "post": {
+        "summary": "admin authors",
+        "operationId": "admin_authors",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Command"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/ticker": {
+      "post": {
+        "summary": "admin ticker",
+        "operationId": "admin_ticker",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Command"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/media": {
+      "post": {
+        "summary": "admin media",
+        "operationId": "admin_media",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Command"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/comments": {
+      "post": {
+        "summary": "admin comments",
+        "operationId": "admin_comments",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Command"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/bulk": {
+      "post": {
+        "summary": "admin bulk",
+        "operationId": "admin_bulk",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Command"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/publishing": {
+      "post": {
+        "summary": "admin publishing",
+        "operationId": "admin_publishing",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Command"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/data": {
+      "get": {
+        "summary": "authorized admin read",
+        "operationId": "authorized_admin_read",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "resource",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "enum": [
+                "posts",
+                "categories",
+                "authors",
+                "media",
+                "comments",
+                "ticker",
+                "revisions",
+                "runs"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "name": "post",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/media/upload": {
+      "post": {
+        "summary": "Decode image and upload original plus derivatives",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "JPEG/PNG/WebP/AVIF/GIF <=5 MiB; hosting transport limit can be lower."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/media/crop": {
+      "post": {
+        "summary": "crop static source image",
+        "operationId": "crop_static_source_image",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "source_id",
+                  "rotation",
+                  "left",
+                  "top",
+                  "width",
+                  "height",
+                  "output_width",
+                  "output_height"
+                ],
+                "properties": {
+                  "source_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "rotation": {
+                    "type": "number"
+                  },
+                  "left": {
+                    "type": "number"
+                  },
+                  "top": {
+                    "type": "number"
+                  },
+                  "width": {
+                    "type": "number"
+                  },
+                  "height": {
+                    "type": "number"
+                  },
+                  "output_width": {
+                    "type": "number"
+                  },
+                  "output_height": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/preview": {
+      "post": {
+        "summary": "safe editorial preview",
+        "operationId": "safe_editorial_preview",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RichDocument"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/cron/publish": {
+      "get": {
+        "summary": "protected idempotent publishing fallback",
+        "operationId": "protected_idempotent_publishing_fallback",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "security": [
+          {
+            "cronBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/media/{id}": {
+      "get": {
+        "summary": "published referenced media",
+        "operationId": "published_referenced_media",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "variant",
+            "in": "query",
+            "schema": {
+              "enum": ["original", "optimized", "thumbnail", "social"]
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/media/{id}": {
+      "get": {
+        "summary": "authorized media {id}",
+        "operationId": "authorized_media_{id}",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/media/usage": {
+      "get": {
+        "summary": "authorized media usage",
+        "operationId": "authorized_media_usage",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/dashboard": {
+      "get": {
+        "summary": "Read authorized dashboard",
+        "description": "Requires dashboard.read. Database permission, live session and category scope enforced. Private/no-store. No secret/token/PIN hashes. Pages contain 25 records unless otherwise documented; sessions latest 50.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized data; analytics accepts <=366 inclusive UTC days."
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "summary": "Read authorized users",
+        "description": "Requires users.manage. Database permission, live session and category scope enforced. Private/no-store. No secret/token/PIN hashes. Pages contain 25 records unless otherwise documented; sessions latest 50.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized data; analytics accepts <=366 inclusive UTC days."
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE"
+          }
+        }
+      },
+      "post": {
+        "summary": "Execute validated users command",
+        "description": "Strict input, exact Origin required, shared rate limiting, database authorization/audit. OWNER sensitive operations require PIN proof; role/security changes also require fresh reauthentication. See docs/API.md for command schema.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Applied atomically or invitation pending email acceptance"
+          },
+          "400": {
+            "description": "INVALID_INPUT or permitted domain error, no raw SQL detail"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / PIN_VERIFICATION_REQUIRED / PIN_SETUP_REQUIRED"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Execute validated users command",
+        "description": "Strict input, exact Origin required, shared rate limiting, database authorization/audit. OWNER sensitive operations require PIN proof; role/security changes also require fresh reauthentication. See docs/API.md for command schema.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Applied atomically or invitation pending email acceptance"
+          },
+          "400": {
+            "description": "INVALID_INPUT or permitted domain error, no raw SQL detail"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / PIN_VERIFICATION_REQUIRED / PIN_SETUP_REQUIRED"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/roles": {
+      "get": {
+        "summary": "Read authorized roles",
+        "description": "Requires roles.manage. Database permission, live session and category scope enforced. Private/no-store. No secret/token/PIN hashes. Pages contain 25 records unless otherwise documented; sessions latest 50.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized data; analytics accepts <=366 inclusive UTC days."
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE"
+          }
+        }
+      },
+      "post": {
+        "summary": "Execute validated roles command",
+        "description": "Strict input, exact Origin required, shared rate limiting, database authorization/audit. OWNER sensitive operations require PIN proof; role/security changes also require fresh reauthentication. See docs/API.md for command schema.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Applied atomically or invitation pending email acceptance"
+          },
+          "400": {
+            "description": "INVALID_INPUT or permitted domain error, no raw SQL detail"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / PIN_VERIFICATION_REQUIRED / PIN_SETUP_REQUIRED"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Execute validated roles command",
+        "description": "Strict input, exact Origin required, shared rate limiting, database authorization/audit. OWNER sensitive operations require PIN proof; role/security changes also require fresh reauthentication. See docs/API.md for command schema.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Applied atomically or invitation pending email acceptance"
+          },
+          "400": {
+            "description": "INVALID_INPUT or permitted domain error, no raw SQL detail"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / PIN_VERIFICATION_REQUIRED / PIN_SETUP_REQUIRED"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/permissions": {
+      "get": {
+        "summary": "Read authorized permissions",
+        "description": "Requires roles.manage. Database permission, live session and category scope enforced. Private/no-store. No secret/token/PIN hashes. Pages contain 25 records unless otherwise documented; sessions latest 50.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized data; analytics accepts <=366 inclusive UTC days."
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE"
+          }
+        }
+      },
+      "post": {
+        "summary": "Execute validated permissions command",
+        "description": "Strict input, exact Origin required, shared rate limiting, database authorization/audit. OWNER sensitive operations require PIN proof; role/security changes also require fresh reauthentication. See docs/API.md for command schema.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Applied atomically or invitation pending email acceptance"
+          },
+          "400": {
+            "description": "INVALID_INPUT or permitted domain error, no raw SQL detail"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / PIN_VERIFICATION_REQUIRED / PIN_SETUP_REQUIRED"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Execute validated permissions command",
+        "description": "Strict input, exact Origin required, shared rate limiting, database authorization/audit. OWNER sensitive operations require PIN proof; role/security changes also require fresh reauthentication. See docs/API.md for command schema.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Applied atomically or invitation pending email acceptance"
+          },
+          "400": {
+            "description": "INVALID_INPUT or permitted domain error, no raw SQL detail"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / PIN_VERIFICATION_REQUIRED / PIN_SETUP_REQUIRED"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/settings": {
+      "get": {
+        "summary": "Read authorized settings",
+        "description": "Requires settings.read / settings.update. Database permission, live session and category scope enforced. Private/no-store. No secret/token/PIN hashes. Pages contain 25 records unless otherwise documented; sessions latest 50.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized data; analytics accepts <=366 inclusive UTC days."
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE"
+          }
+        }
+      },
+      "post": {
+        "summary": "Execute validated settings command",
+        "description": "Strict input, exact Origin required, shared rate limiting, database authorization/audit. OWNER sensitive operations require PIN proof; role/security changes also require fresh reauthentication. See docs/API.md for command schema.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Applied atomically or invitation pending email acceptance"
+          },
+          "400": {
+            "description": "INVALID_INPUT or permitted domain error, no raw SQL detail"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / PIN_VERIFICATION_REQUIRED / PIN_SETUP_REQUIRED"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Execute validated settings command",
+        "description": "Strict input, exact Origin required, shared rate limiting, database authorization/audit. OWNER sensitive operations require PIN proof; role/security changes also require fresh reauthentication. See docs/API.md for command schema.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Applied atomically or invitation pending email acceptance"
+          },
+          "400": {
+            "description": "INVALID_INPUT or permitted domain error, no raw SQL detail"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / PIN_VERIFICATION_REQUIRED / PIN_SETUP_REQUIRED"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/analytics": {
+      "get": {
+        "summary": "Read authorized analytics",
+        "description": "Requires analytics.read. Database permission, live session and category scope enforced. Private/no-store. No secret/token/PIN hashes. Pages contain 25 records unless otherwise documented; sessions latest 50.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized data; analytics accepts <=366 inclusive UTC days."
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/audit-logs": {
+      "get": {
+        "summary": "Read authorized audit-logs",
+        "description": "Requires audit.read. Database permission, live session and category scope enforced. Private/no-store. No secret/token/PIN hashes. Pages contain 25 records unless otherwise documented; sessions latest 50.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized data; analytics accepts <=366 inclusive UTC days."
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/notifications": {
+      "get": {
+        "summary": "Read authorized notifications",
+        "description": "Requires notifications.read. Database permission, live session and category scope enforced. Private/no-store. No secret/token/PIN hashes. Pages contain 25 records unless otherwise documented; sessions latest 50.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized data; analytics accepts <=366 inclusive UTC days."
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE"
+          }
+        }
+      },
+      "post": {
+        "summary": "Execute validated notifications command",
+        "description": "Strict input, exact Origin required, shared rate limiting, database authorization/audit. OWNER sensitive operations require PIN proof; role/security changes also require fresh reauthentication. See docs/API.md for command schema.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Applied atomically or invitation pending email acceptance"
+          },
+          "400": {
+            "description": "INVALID_INPUT or permitted domain error, no raw SQL detail"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / PIN_VERIFICATION_REQUIRED / PIN_SETUP_REQUIRED"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/menus": {
+      "get": {
+        "summary": "Read authorized menus",
+        "description": "Requires menus.manage. Database permission, live session and category scope enforced. Private/no-store. No secret/token/PIN hashes. Pages contain 25 records unless otherwise documented; sessions latest 50.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized data; analytics accepts <=366 inclusive UTC days."
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE"
+          }
+        }
+      },
+      "post": {
+        "summary": "Execute validated menus command",
+        "description": "Strict input, exact Origin required, shared rate limiting, database authorization/audit. OWNER sensitive operations require PIN proof; role/security changes also require fresh reauthentication. See docs/API.md for command schema.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Applied atomically or invitation pending email acceptance"
+          },
+          "400": {
+            "description": "INVALID_INPUT or permitted domain error, no raw SQL detail"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / PIN_VERIFICATION_REQUIRED / PIN_SETUP_REQUIRED"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Execute validated menus command",
+        "description": "Strict input, exact Origin required, shared rate limiting, database authorization/audit. OWNER sensitive operations require PIN proof; role/security changes also require fresh reauthentication. See docs/API.md for command schema.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Applied atomically or invitation pending email acceptance"
+          },
+          "400": {
+            "description": "INVALID_INPUT or permitted domain error, no raw SQL detail"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / PIN_VERIFICATION_REQUIRED / PIN_SETUP_REQUIRED"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invitations": {
+      "get": {
+        "summary": "Read authorized invitations",
+        "description": "Requires users.invite. Database permission, live session and category scope enforced. Private/no-store. No secret/token/PIN hashes. Pages contain 25 records unless otherwise documented; sessions latest 50.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized data; analytics accepts <=366 inclusive UTC days."
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE"
+          }
+        }
+      },
+      "post": {
+        "summary": "Execute validated invitations command",
+        "description": "Strict input, exact Origin required, shared rate limiting, database authorization/audit. OWNER sensitive operations require PIN proof; role/security changes also require fresh reauthentication. See docs/API.md for command schema.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Applied atomically or invitation pending email acceptance"
+          },
+          "400": {
+            "description": "INVALID_INPUT or permitted domain error, no raw SQL detail"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / PIN_VERIFICATION_REQUIRED / PIN_SETUP_REQUIRED"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/announcements": {
+      "get": {
+        "summary": "Read authorized announcements",
+        "description": "Requires announcements.manage. Database permission, live session and category scope enforced. Private/no-store. No secret/token/PIN hashes. Pages contain 25 records unless otherwise documented; sessions latest 50.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized data; analytics accepts <=366 inclusive UTC days."
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/integrations": {
+      "get": {
+        "summary": "Read authorized integrations",
+        "description": "Requires integrations.manage. Database permission, live session and category scope enforced. Private/no-store. No secret/token/PIN hashes. Pages contain 25 records unless otherwise documented; sessions latest 50.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized data; analytics accepts <=366 inclusive UTC days."
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE"
+          }
+        }
+      },
+      "post": {
+        "summary": "Execute validated integrations command",
+        "description": "Strict input, exact Origin required, shared rate limiting, database authorization/audit. OWNER sensitive operations require PIN proof; role/security changes also require fresh reauthentication. See docs/API.md for command schema.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Applied atomically or invitation pending email acceptance"
+          },
+          "400": {
+            "description": "INVALID_INPUT or permitted domain error, no raw SQL detail"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / PIN_VERIFICATION_REQUIRED / PIN_SETUP_REQUIRED"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Execute validated integrations command",
+        "description": "Strict input, exact Origin required, shared rate limiting, database authorization/audit. OWNER sensitive operations require PIN proof; role/security changes also require fresh reauthentication. See docs/API.md for command schema.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Applied atomically or invitation pending email acceptance"
+          },
+          "400": {
+            "description": "INVALID_INPUT or permitted domain error, no raw SQL detail"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / PIN_VERIFICATION_REQUIRED / PIN_SETUP_REQUIRED"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/security": {
+      "get": {
+        "summary": "Read authorized security",
+        "description": "Requires security.manage. Database permission, live session and category scope enforced. Private/no-store. No secret/token/PIN hashes. Pages contain 25 records unless otherwise documented; sessions latest 50.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized data; analytics accepts <=366 inclusive UTC days."
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE"
+          }
+        }
+      },
+      "post": {
+        "summary": "Revoke another administrative session",
+        "description": "OWNER, fresh strong PIN proof and exact Origin required; current session must use logout. Stores administrative revocation, does not claim global JWT termination.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["id", "action"],
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "action": {
+                    "const": "revoke"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Administrative session revoked"
+          },
+          "403": {
+            "description": "Permission/PIN denied"
+          },
+          "400": {
+            "description": "Invalid session/current session uses logout"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/backups": {
+      "get": {
+        "summary": "Read authorized backups",
+        "description": "Requires backups.read. Database permission, live session and category scope enforced. Private/no-store. No secret/token/PIN hashes. Pages contain 25 records unless otherwise documented; sessions latest 50.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized data; analytics accepts <=366 inclusive UTC days."
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE"
+          }
+        }
+      }
+    },
+    "/auth/pin": {
+      "post": {
+        "summary": "OWNER PIN save/reset or verification",
+        "description": "Current verified owner session + Origin + rate limiting. Save requires fresh password; enrolled MFA requires aal2. Output contains only verification flag/TTL/assurance, proof is HttpOnly.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["action", "pin"],
+                "additionalProperties": false,
+                "properties": {
+                  "action": {
+                    "enum": ["save", "verify"]
+                  },
+                  "pin": {
+                    "type": "string",
+                    "pattern": "^[0-9]{6,12}$",
+                    "writeOnly": true
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "writeOnly": true
+                  },
+                  "ttl_seconds": {
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 900
+                  },
+                  "required": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verified; HttpOnly proof cookie set"
+          },
+          "401": {
+            "description": "Reauthentication required"
+          },
+          "403": {
+            "description": "Not owner / invalid PIN / MFA required"
+          },
+          "429": {
+            "description": "Backoff or rate limit"
+          }
+        }
+      }
+    },
+    "/api/v1/invitations/accept": {
+      "post": {
+        "summary": "Accept one-use administrator invitation",
+        "description": "Requires confirmed matching Auth identity and actual session. Never grants OWNER. Invalid, expired, revoked or reused token returns 403.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["token"],
+                "additionalProperties": false,
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]{43}$",
+                    "writeOnly": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted"
+          },
+          "401": {
+            "description": "Confirmed identity required"
+          },
+          "403": {
+            "description": "INVITATION_INVALID_OR_EXPIRED"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v1/ai/chat": {
+      "post": {
+        "operationId": "ai_chat",
+        "summary": "Optional public-source chat",
+        "description": "No transcripts stored. Six requests/minute plus shared database quotas. SSE output is buffered until grounding/publication checks pass. Foreign browser Origin is rejected.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["message"],
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 2000
+                  },
+                  "post_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "stream": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JSON data; AI answers include verified source links and request_id"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication or signature required"
+          },
+          "403": {
+            "description": "Permission, PIN or Origin denied"
+          },
+          "404": {
+            "description": "Public source or endpoint not found"
+          },
+          "409": {
+            "description": "Version conflict or replay"
+          },
+          "429": {
+            "description": "Rate/quota exceeded"
+          },
+          "503": {
+            "description": "Disabled, unconfigured or unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/ai/summarize": {
+      "post": {
+        "operationId": "ai_summarize",
+        "summary": "Optional public-source summarize",
+        "description": "No transcripts stored. Six requests/minute plus shared database quotas. SSE output is buffered until grounding/publication checks pass. Foreign browser Origin is rejected.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["post_id"],
+                "properties": {
+                  "post_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["short", "medium", "detailed", "points", "ideas"]
+                  },
+                  "stream": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JSON data; AI answers include verified source links and request_id"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication or signature required"
+          },
+          "403": {
+            "description": "Permission, PIN or Origin denied"
+          },
+          "404": {
+            "description": "Public source or endpoint not found"
+          },
+          "409": {
+            "description": "Version conflict or replay"
+          },
+          "429": {
+            "description": "Rate/quota exceeded"
+          },
+          "503": {
+            "description": "Disabled, unconfigured or unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/ai/search": {
+      "post": {
+        "operationId": "ai_search",
+        "summary": "Optional public-source search",
+        "description": "No transcripts stored. Six requests/minute plus shared database quotas. SSE output is buffered until grounding/publication checks pass. Foreign browser Origin is rejected.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["message"],
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
+                  },
+                  "related_post_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JSON data; AI answers include verified source links and request_id"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication or signature required"
+          },
+          "403": {
+            "description": "Permission, PIN or Origin denied"
+          },
+          "404": {
+            "description": "Public source or endpoint not found"
+          },
+          "409": {
+            "description": "Version conflict or replay"
+          },
+          "429": {
+            "description": "Rate/quota exceeded"
+          },
+          "503": {
+            "description": "Disabled, unconfigured or unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/ai/status": {
+      "get": {
+        "operationId": "ai_status",
+        "responses": {
+          "200": {
+            "description": "JSON data; AI answers include verified source links and request_id"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication or signature required"
+          },
+          "403": {
+            "description": "Permission, PIN or Origin denied"
+          },
+          "404": {
+            "description": "Public source or endpoint not found"
+          },
+          "409": {
+            "description": "Version conflict or replay"
+          },
+          "429": {
+            "description": "Rate/quota exceeded"
+          },
+          "503": {
+            "description": "Disabled, unconfigured or unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ai/providers": {
+      "get": {
+        "operationId": "admin_ai_providers_get",
+        "description": "Verified administrative session and current database RBAC required. Owner-sensitive settings/reindex require PIN proof. Credentials are never accepted in these payloads. See docs/API.md for typed settings/editorial contracts.",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON data; AI answers include verified source links and request_id"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication or signature required"
+          },
+          "403": {
+            "description": "Permission, PIN or Origin denied"
+          },
+          "404": {
+            "description": "Public source or endpoint not found"
+          },
+          "409": {
+            "description": "Version conflict or replay"
+          },
+          "429": {
+            "description": "Rate/quota exceeded"
+          },
+          "503": {
+            "description": "Disabled, unconfigured or unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ai/models": {
+      "get": {
+        "operationId": "admin_ai_models_get",
+        "description": "Verified administrative session and current database RBAC required. Owner-sensitive settings/reindex require PIN proof. Credentials are never accepted in these payloads. See docs/API.md for typed settings/editorial contracts.",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON data; AI answers include verified source links and request_id"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication or signature required"
+          },
+          "403": {
+            "description": "Permission, PIN or Origin denied"
+          },
+          "404": {
+            "description": "Public source or endpoint not found"
+          },
+          "409": {
+            "description": "Version conflict or replay"
+          },
+          "429": {
+            "description": "Rate/quota exceeded"
+          },
+          "503": {
+            "description": "Disabled, unconfigured or unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ai/settings": {
+      "get": {
+        "operationId": "admin_ai_settings_get",
+        "description": "Verified administrative session and current database RBAC required. Owner-sensitive settings/reindex require PIN proof. Credentials are never accepted in these payloads. See docs/API.md for typed settings/editorial contracts.",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON data; AI answers include verified source links and request_id"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication or signature required"
+          },
+          "403": {
+            "description": "Permission, PIN or Origin denied"
+          },
+          "404": {
+            "description": "Public source or endpoint not found"
+          },
+          "409": {
+            "description": "Version conflict or replay"
+          },
+          "429": {
+            "description": "Rate/quota exceeded"
+          },
+          "503": {
+            "description": "Disabled, unconfigured or unavailable"
+          }
+        }
+      },
+      "post": {
+        "operationId": "admin_ai_settings_post",
+        "description": "Verified administrative session and current database RBAC required. Owner-sensitive settings/reindex require PIN proof. Credentials are never accepted in these payloads. See docs/API.md for typed settings/editorial contracts.",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON data; AI answers include verified source links and request_id"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication or signature required"
+          },
+          "403": {
+            "description": "Permission, PIN or Origin denied"
+          },
+          "404": {
+            "description": "Public source or endpoint not found"
+          },
+          "409": {
+            "description": "Version conflict or replay"
+          },
+          "429": {
+            "description": "Rate/quota exceeded"
+          },
+          "503": {
+            "description": "Disabled, unconfigured or unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ai/usage": {
+      "get": {
+        "operationId": "admin_ai_usage_get",
+        "description": "Verified administrative session and current database RBAC required. Owner-sensitive settings/reindex require PIN proof. Credentials are never accepted in these payloads. See docs/API.md for typed settings/editorial contracts.",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON data; AI answers include verified source links and request_id"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication or signature required"
+          },
+          "403": {
+            "description": "Permission, PIN or Origin denied"
+          },
+          "404": {
+            "description": "Public source or endpoint not found"
+          },
+          "409": {
+            "description": "Version conflict or replay"
+          },
+          "429": {
+            "description": "Rate/quota exceeded"
+          },
+          "503": {
+            "description": "Disabled, unconfigured or unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ai/index-status": {
+      "get": {
+        "operationId": "admin_ai_index_status_get",
+        "description": "Verified administrative session and current database RBAC required. Owner-sensitive settings/reindex require PIN proof. Credentials are never accepted in these payloads. See docs/API.md for typed settings/editorial contracts.",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON data; AI answers include verified source links and request_id"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication or signature required"
+          },
+          "403": {
+            "description": "Permission, PIN or Origin denied"
+          },
+          "404": {
+            "description": "Public source or endpoint not found"
+          },
+          "409": {
+            "description": "Version conflict or replay"
+          },
+          "429": {
+            "description": "Rate/quota exceeded"
+          },
+          "503": {
+            "description": "Disabled, unconfigured or unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ai/test": {
+      "post": {
+        "operationId": "admin_ai_test_post",
+        "description": "Verified administrative session and current database RBAC required. Owner-sensitive settings/reindex require PIN proof. Credentials are never accepted in these payloads. See docs/API.md for typed settings/editorial contracts.",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON data; AI answers include verified source links and request_id"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication or signature required"
+          },
+          "403": {
+            "description": "Permission, PIN or Origin denied"
+          },
+          "404": {
+            "description": "Public source or endpoint not found"
+          },
+          "409": {
+            "description": "Version conflict or replay"
+          },
+          "429": {
+            "description": "Rate/quota exceeded"
+          },
+          "503": {
+            "description": "Disabled, unconfigured or unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ai/reindex": {
+      "post": {
+        "operationId": "admin_ai_reindex_post",
+        "description": "Verified administrative session and current database RBAC required. Owner-sensitive settings/reindex require PIN proof. Credentials are never accepted in these payloads. See docs/API.md for typed settings/editorial contracts.",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON data; AI answers include verified source links and request_id"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication or signature required"
+          },
+          "403": {
+            "description": "Permission, PIN or Origin denied"
+          },
+          "404": {
+            "description": "Public source or endpoint not found"
+          },
+          "409": {
+            "description": "Version conflict or replay"
+          },
+          "429": {
+            "description": "Rate/quota exceeded"
+          },
+          "503": {
+            "description": "Disabled, unconfigured or unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ai/editorial": {
+      "post": {
+        "operationId": "admin_ai_editorial_post",
+        "description": "Verified administrative session and current database RBAC required. Owner-sensitive settings/reindex require PIN proof. Credentials are never accepted in these payloads. See docs/API.md for typed settings/editorial contracts.",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON data; AI answers include verified source links and request_id"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication or signature required"
+          },
+          "403": {
+            "description": "Permission, PIN or Origin denied"
+          },
+          "404": {
+            "description": "Public source or endpoint not found"
+          },
+          "409": {
+            "description": "Version conflict or replay"
+          },
+          "429": {
+            "description": "Rate/quota exceeded"
+          },
+          "503": {
+            "description": "Disabled, unconfigured or unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/telegram": {
+      "get": {
+        "operationId": "telegram_link_get",
+        "description": "Verified active administrative session. POST uses strict action link/unlink and exact site Origin. Linking URLs expire in 300 seconds and are single-use.",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON data; AI answers include verified source links and request_id"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication or signature required"
+          },
+          "403": {
+            "description": "Permission, PIN or Origin denied"
+          },
+          "404": {
+            "description": "Public source or endpoint not found"
+          },
+          "409": {
+            "description": "Version conflict or replay"
+          },
+          "429": {
+            "description": "Rate/quota exceeded"
+          },
+          "503": {
+            "description": "Disabled, unconfigured or unavailable"
+          }
+        }
+      },
+      "post": {
+        "operationId": "telegram_link_post",
+        "description": "Verified active administrative session. POST uses strict action link/unlink and exact site Origin. Linking URLs expire in 300 seconds and are single-use.",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON data; AI answers include verified source links and request_id"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication or signature required"
+          },
+          "403": {
+            "description": "Permission, PIN or Origin denied"
+          },
+          "404": {
+            "description": "Public source or endpoint not found"
+          },
+          "409": {
+            "description": "Version conflict or replay"
+          },
+          "429": {
+            "description": "Rate/quota exceeded"
+          },
+          "503": {
+            "description": "Disabled, unconfigured or unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["action"],
+                "properties": {
+                  "action": {
+                    "enum": ["link", "unlink"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/internal/automation/updates": {
+      "post": {
+        "operationId": "automation_updates",
+        "description": "Server-only HMAC-SHA256 of timestamp, nonce, exact path and SHA256(body); newline separated. Timestamp tolerance 30 seconds. Nonce is single-use. See docs/TELEGRAM_SECURITY.md.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-maystroon-time",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-maystroon-nonce",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-maystroon-signature",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON data; AI answers include verified source links and request_id"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication or signature required"
+          },
+          "403": {
+            "description": "Permission, PIN or Origin denied"
+          },
+          "404": {
+            "description": "Public source or endpoint not found"
+          },
+          "409": {
+            "description": "Version conflict or replay"
+          },
+          "429": {
+            "description": "Rate/quota exceeded"
+          },
+          "503": {
+            "description": "Disabled, unconfigured or unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/internal/automation/work": {
+      "post": {
+        "operationId": "automation_work",
+        "description": "Server-only HMAC-SHA256 of timestamp, nonce, exact path and SHA256(body); newline separated. Timestamp tolerance 30 seconds. Nonce is single-use. See docs/TELEGRAM_SECURITY.md.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-maystroon-time",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-maystroon-nonce",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-maystroon-signature",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON data; AI answers include verified source links and request_id"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication or signature required"
+          },
+          "403": {
+            "description": "Permission, PIN or Origin denied"
+          },
+          "404": {
+            "description": "Public source or endpoint not found"
+          },
+          "409": {
+            "description": "Version conflict or replay"
+          },
+          "429": {
+            "description": "Rate/quota exceeded"
+          },
+          "503": {
+            "description": "Disabled, unconfigured or unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/internal/automation/ack": {
+      "post": {
+        "operationId": "automation_ack",
+        "description": "Server-only HMAC-SHA256 of timestamp, nonce, exact path and SHA256(body); newline separated. Timestamp tolerance 30 seconds. Nonce is single-use. See docs/TELEGRAM_SECURITY.md.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-maystroon-time",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-maystroon-nonce",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-maystroon-signature",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON data; AI answers include verified source links and request_id"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication or signature required"
+          },
+          "403": {
+            "description": "Permission, PIN or Origin denied"
+          },
+          "404": {
+            "description": "Public source or endpoint not found"
+          },
+          "409": {
+            "description": "Version conflict or replay"
+          },
+          "429": {
+            "description": "Rate/quota exceeded"
+          },
+          "503": {
+            "description": "Disabled, unconfigured or unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/internal/automation/health": {
+      "post": {
+        "operationId": "automation_health",
+        "description": "Server-only HMAC-SHA256 of timestamp, nonce, exact path and SHA256(body); newline separated. Timestamp tolerance 30 seconds. Nonce is single-use. See docs/TELEGRAM_SECURITY.md.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-maystroon-time",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-maystroon-nonce",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-maystroon-signature",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON data; AI answers include verified source links and request_id"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication or signature required"
+          },
+          "403": {
+            "description": "Permission, PIN or Origin denied"
+          },
+          "404": {
+            "description": "Public source or endpoint not found"
+          },
+          "409": {
+            "description": "Version conflict or replay"
+          },
+          "429": {
+            "description": "Rate/quota exceeded"
+          },
+          "503": {
+            "description": "Disabled, unconfigured or unavailable"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "Command": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": ["string", "null"],
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "patch": {
+            "type": "object"
+          },
+          "action": {
+            "type": "string"
+          },
+          "scheduled_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "transfer_to": {
+            "type": ["string", "null"],
+            "format": "uuid"
+          },
+          "items": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "RichDocument": {
+        "type": "object",
+        "required": ["type", "content"],
+        "properties": {
+          "type": {
+            "const": "doc"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "session": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "Supabase SSR session",
+        "description": "Project-dependent HttpOnly cookie; exact configured Origin required for writes."
+      },
+      "cronBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      },
+      "adminCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "sb-<project-ref>-auth-token",
+        "description": "Supabase SSR session cookie, verified on server; name varies with project. Sensitive OWNER writes also require a session-bound HttpOnly PIN proof."
+      },
+      "adminSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "Supabase Auth session",
+        "description": "Supabase SSR session cookie; exact cookie name depends on the configured project. Server validates Auth user/session and database permissions."
+      }
+    }
+  }
+}
