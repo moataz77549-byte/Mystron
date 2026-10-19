@@ -26,5 +26,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(target);
     }
   }
-  return NextResponse.redirect(new URL("/admin/login", siteUrl()));
+  return NextResponse.redirect(
+    new URL("/admin/login?reason=link-invalid", siteUrl()),
+  );
 }

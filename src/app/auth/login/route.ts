@@ -7,7 +7,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { loginSchema } from "@/lib/validation";
 import { failure } from "@/lib/api";
 export async function POST(request: NextRequest) {
-  if (!sameOrigin(request)) return failure("FORBIDDEN", 403);
+  if (!sameOrigin(request)) return failure("INVALID_ORIGIN", 403);
   try {
     if (
       !(await rateLimit(
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
         900,
       ))
     )
-      return failure("RATE_LIMITED", 429);
+      return failure("RATE_LIMITED", 429, { "Retry-After": "900" });
     const parsed = loginSchema.safeParse(await request.json());
     if (!parsed.success) return failure("INVALID_INPUT", 400);
     const db = await sessionDatabase();

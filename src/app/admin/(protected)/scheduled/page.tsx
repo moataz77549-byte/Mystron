@@ -1,13 +1,15 @@
 import { requireAdmin } from "@/lib/auth";
 import Link from "next/link";
 export default async function Page() {
-  const { db } = await requireAdmin();
+  const { db, permissions } = await requireAdmin();
+  if (!permissions["posts.schedule"])
+    return <p role="alert">لا تملك صلاحية الاطلاع على طابور الجدولة.</p>;
   const { data, error } = await db
     .from("posts")
     .select("id,title,scheduled_at,last_schedule_error,schedule_attempts")
     .eq("status", "scheduled")
     .is("deleted_at", null)
-    .order("updated_at")
+    .order("scheduled_at")
     .limit(100);
   if (error) throw new Error("تعذر تحميل التدوينات");
   return (

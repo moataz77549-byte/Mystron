@@ -35,7 +35,7 @@ export type Post = {
   updated_at: string;
   canonical_url: string | null;
   tags: string[];
-  sources: { title: string; url: string }[];
+  sources: import("./editor/sources").EditorialSource[];
   allow_comments: boolean;
   comments_close_at: string | null;
   sharing: Record<string, boolean>;

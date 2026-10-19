@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema } from "@/lib/validation";
 import type { z } from "zod";
+import { adminErrorMessage, adminRequest } from "@/lib/client/request";
 export function LoginForm() {
   const router = useRouter();
   const {
@@ -20,20 +21,16 @@ export function LoginForm() {
       className="form"
       onSubmit={handleSubmit(async (data) => {
         try {
-          const r = await fetch("/auth/login", {
+          setMessage("");
+          await adminRequest("/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data),
           });
-          if (r.ok) {
-            router.push("/admin");
-            router.refresh();
-          } else
-            setMessage(
-              "تعذّر تسجيل الدخول. تحقق من بيانات الحساب وتأكيد البريد والصلاحية.",
-            );
-        } catch {
-          setMessage("تعذّر الاتصال بالخدمة.");
+          router.replace("/admin");
+          router.refresh();
+        } catch (error) {
+          setMessage(adminErrorMessage(error));
         }
       })}
     >

@@ -5,6 +5,7 @@ import { DataTable, Pagination } from "./table";
 import { ViewsChart } from "./chart";
 import { PinProtection } from "./pin";
 import { Action } from "./form";
+import { DashboardEditorial } from "./dashboard-editorial";
 import {
   UsersEditor,
   InvitationsEditor,
@@ -108,6 +109,17 @@ export async function ControlPage({
       <h1>{titles[resource]}</h1>
       {resource === "dashboard" && (
         <>
+          <div className="dashboard-welcome">
+            <div>
+              <h2>أهلاً بك في مساحة الكتابة</h2>
+              <p>من الفكرة الأولى إلى المقال المنشور، كل خطوة في مكانها.</p>
+            </div>
+            {identity.permissions["posts.create"] && (
+              <Link className="button" href="/admin/posts/new">
+                إنشاء مقال جديد
+              </Link>
+            )}
+          </div>
           <div className="stats">
             {Object.entries(data as Row).map(([key, value]) => (
               <article key={key}>
@@ -116,6 +128,7 @@ export async function ControlPage({
               </article>
             ))}
           </div>
+          <DashboardEditorial identity={identity} />
           <section className="control-card">
             <h2>حالة الخدمات</h2>
             <p>

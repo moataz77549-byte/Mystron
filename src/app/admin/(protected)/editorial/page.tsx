@@ -13,7 +13,10 @@ export default async function Page() {
   return (
     <>
       <h1>طابور المراجعة التحريرية</h1>
-      <p>التوقيت المعروض: عدن (UTC+3). تغيير الموعد أو إلغاؤه من المحرر.</p>
+      <p>
+        المقالات المرسلة للمراجعة مرتبة من الأقدم. افتح المقال لمراجعته واتخاذ
+        قرار النشر وفق صلاحياتك.
+      </p>
       {data.map((p) => (
         <article key={p.id} className="catalog-card">
           <Link href={`/admin/posts/${p.id}/edit`}>{p.title}</Link>

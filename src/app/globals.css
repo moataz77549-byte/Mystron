@@ -9,6 +9,7 @@
   --muted: #59616d;
   --gold: #d5a96a;
   --teal: #267e81;
+  --wine: #8f4d52;
   --border: #ded8cd;
   --radius: 18px;
   color-scheme: light;
@@ -901,7 +902,7 @@ td {
   margin: 2rem auto;
   align-items: start;
 }
-.control-shell aside {
+.control-shell > aside {
   position: sticky;
   top: 1rem;
   max-height: 90vh;
@@ -911,15 +912,15 @@ td {
   padding: 1rem;
   background: var(--surface);
 }
-.control-shell aside nav {
+.control-shell > aside nav {
   display: grid;
   gap: 0.25rem;
 }
-.control-shell aside a {
+.control-shell > aside a {
   padding: 0.55rem 0.8rem;
   border-radius: 6px;
 }
-.control-shell aside a[aria-current="page"] {
+.control-shell > aside a[aria-current="page"] {
   background: var(--navy);
   color: var(--ivory);
 }
@@ -1348,5 +1349,54 @@ body {
   }
   .ai-assistant-heading {
     flex-wrap: wrap;
+  }
+}
+
+/* Shared article typography; structured literary content requires no editor JS. */
+.editor-poetry-verse {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 2rem;
+  text-align: center;
+  font-family: var(--font-reading, "Noto Naskh Arabic", serif);
+  line-height: 2.2;
+  margin-block: 1.5rem;
+}
+.editor-poetry-verse span {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.editor-poetry-verse.verse-small {
+  font-size: 0.9em;
+}
+.editor-poetry-verse.verse-large {
+  font-size: 1.25em;
+}
+.editor-citation {
+  border-inline-start: 3px solid var(--gold);
+  padding: 1.25rem;
+  margin-inline: 0;
+}
+.editor-citation blockquote {
+  white-space: pre-wrap;
+  margin: 0 0 0.75rem;
+}
+.editor-citation figcaption {
+  font-family: var(--font-interface, inherit);
+  font-size: 0.85em;
+}
+.editor-callout {
+  padding: 1rem;
+  border-inline-start: 4px solid var(--teal);
+  background: color-mix(in srgb, var(--teal) 8%, var(--surface));
+  border-radius: 0.5rem;
+}
+.editor-callout.callout-warning {
+  border-inline-start-color: var(--wine);
+}
+@media (max-width: 600px) {
+  .editor-poetry-verse {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
   }
 }

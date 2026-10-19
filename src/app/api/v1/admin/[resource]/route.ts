@@ -22,7 +22,7 @@ export async function POST(
     const identity = await authorizedUser();
     if (!identity) return failure("UNAUTHORIZED", 401);
     if (!(await rateLimit("admin:" + identity.user.id, 60, 60)))
-      return failure("RATE_LIMITED", 429);
+      return failure("RATE_LIMITED", 429, { "Retry-After": "60" });
     const body = await req.text();
     if (body.length > 1000000) return failure("PAYLOAD_TOO_LARGE", 413);
     return NextResponse.json({
@@ -80,7 +80,7 @@ export async function GET(
     const identity = await authorizedUser();
     if (!identity) return failure("UNAUTHORIZED", 401);
     if (!(await rateLimit("admin-read:" + identity.user.id, 120, 60)))
-      return failure("RATE_LIMITED", 429);
+      return failure("RATE_LIMITED", 429, { "Retry-After": "60" });
     const data = await controlRead(resource, req.nextUrl.searchParams);
     if (
       req.nextUrl.searchParams.get("format") === "csv" &&

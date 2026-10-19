@@ -9,5 +9,7 @@ export async function GET(request: NextRequest) {
     ).auth.exchangeCodeForSession(code);
     if (!error) return NextResponse.redirect(new URL("/admin", siteUrl()));
   }
-  return NextResponse.redirect(new URL("/admin/login", siteUrl()));
+  return NextResponse.redirect(
+    new URL("/admin/login?reason=link-invalid", siteUrl()),
+  );
 }
