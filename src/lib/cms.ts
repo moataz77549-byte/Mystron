@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { sourceSchema } from "./editor/sources";
 import { revalidatePath } from "next/cache";
 import { authorizedUser } from "./auth";
 import {
@@ -36,18 +37,7 @@ export const postPatch = z
     share_asset_id: nullableId.optional(),
     tags: z.array(z.string().max(80)).max(30).optional(),
     editorial_keywords: z.array(z.string().max(80)).max(30).optional(),
-    sources: z
-      .array(
-        z.object({
-          title: short,
-          url: z
-            .string()
-            .url()
-            .refine((v) => !!safeLink(v)),
-        }),
-      )
-      .max(50)
-      .optional(),
+    sources: z.array(sourceSchema).max(50).optional(),
     seo_title: z.string().max(200).nullable().optional(),
     seo_description: z.string().max(500).nullable().optional(),
     canonical_url: url.optional(),

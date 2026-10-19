@@ -421,3 +421,90 @@ it("explicit category transfer records revision/version and rejects AUTHOR", asy
   expect(after.primary_category_id).toBe(to);
   expect(after.version).toBe(before + 1);
 });
+
+it("editorial list filters and Arabic normalization preserve current row permissions and trash isolation", async () => {
+  await actor(owner);
+  const category = (
+    await db.query<{ id: string }>(
+      "select id from categories where slug='news'",
+    )
+  ).rows[0].id;
+  const writer = await rpc("cms_save_author", [
+    null,
+    { display_name: "كاتب الفلاتر", slug: "filter-writer" },
+  ]);
+  const first = await rpc("cms_save_post", [
+    null,
+    {
+      title: "فلترة أَلِف",
+      slug: "filter-first",
+      author_id: writer.id,
+      primary_category_id: category,
+      category_ids: [category],
+    },
+    null,
+  ]);
+  await rpc("cms_save_post", [
+    null,
+    {
+      title: "فلترة ألف ثانية",
+      slug: "filter-second",
+      author_id: writer.id,
+      primary_category_id: category,
+      category_ids: [category],
+    },
+    null,
+  ]);
+  async function list(filters: Record<string, unknown>, status = "draft") {
+    return (
+      await db.query<{
+        data: {
+          total: number;
+          rows: {
+            id: string;
+            author_name: string;
+            category_name: string;
+            can_update: boolean;
+            views: number;
+          }[];
+        };
+      }>(
+        "select public.admin_post_list_filtered(1,'الف',$1,$2::jsonb) as data",
+        [status, JSON.stringify(filters)],
+      )
+    ).rows[0].data;
+  }
+  const found = await list({
+    author_id: writer.id,
+    category_id: category,
+    page_size: 25,
+    sort: "title",
+  });
+  expect(found.total).toBe(2);
+  expect(found.rows).toHaveLength(2);
+  expect(found.rows[0]).toMatchObject({
+    author_name: "كاتب الفلاتر",
+    category_name: "الأخبار المتنوعة",
+    can_update: true,
+    views: 0,
+  });
+  await rpc("cms_transition_post", [first.id, "delete", first.version, null]);
+  expect((await list({}, "")).total).toBe(1);
+  expect((await list({}, "trash")).rows.map((row) => row.id)).toEqual([
+    first.id,
+  ]);
+  await expect(list({ sort: "untrusted SQL" })).rejects.toThrow(
+    "INVALID_QUERY",
+  );
+  await expect(list({ page_size: 10001 })).rejects.toThrow("INVALID_QUERY");
+  await actor(other);
+  expect((await list({})).total).toBe(0);
+  await expect(list({ sort: "views" })).rejects.toThrow("FORBIDDEN");
+  await db.exec("reset role;set role anon");
+  await expect(list({})).rejects.toThrow(/permission denied/);
+  await db.exec("reset role");
+  const migration = readdirSync("supabase/migrations").find((name) =>
+    name.endsWith("_admin_editorial_overhaul.sql"),
+  )!;
+  await db.exec(readFileSync("supabase/migrations/" + migration, "utf8"));
+});

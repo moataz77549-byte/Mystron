@@ -9,14 +9,12 @@ afterEach(() => vi.unstubAllGlobals());
 it("preserves HTTP status and cooldown and translates actionable Arabic errors", async () => {
   vi.stubGlobal(
     "fetch",
-    vi
-      .fn()
-      .mockResolvedValue(
-        new Response(JSON.stringify({ error: { code: "RATE_LIMITED" } }), {
-          status: 429,
-          headers: { "Retry-After": "42" },
-        }),
-      ),
+    vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ error: { code: "RATE_LIMITED" } }), {
+        status: 429,
+        headers: { "Retry-After": "42" },
+      }),
+    ),
   );
   const error = await adminRequest("/fixture").catch((e: unknown) => e);
   expect(error).toMatchObject({

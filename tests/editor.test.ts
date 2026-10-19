@@ -106,3 +106,63 @@ it("restricts document complexity and media IDs", () => {
 it("normalizes Arabic search only; original document text remains unchanged", () => {
   expect(normalizeArabic("إبْداعــ آفاق")).toBe("ابداع افاق");
 });
+it("keeps structured verses, citations and source text searchable while escaping their HTML", async () => {
+  const { documentText } = await import("@/lib/editor/document");
+  const { sourceSchema } = await import("@/lib/editor/sources");
+  const doc = validateDocument({
+    type: "doc",
+    content: [
+      {
+        type: "poetryVerse",
+        attrs: {
+          first: "أَوَّلٌ  وشَطْرٌ",
+          second: "ثانٍ <script>bad</script>",
+          size: 'large" onclick=bad',
+        },
+      },
+      {
+        type: "citation",
+        attrs: {
+          quote: "اقتباسٌ من كتاب",
+          author: "مؤلِّف",
+          book: "كتاب",
+          page: "24",
+          url: "javascript:alert(1)",
+        },
+      },
+      {
+        type: "callout",
+        attrs: { title: "توضيح", kind: "warning" },
+        content: [
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: "نص عربي English 2026" }],
+          },
+        ],
+      },
+    ],
+  });
+  const html = renderDocument(doc);
+  expect(html).toContain("editor-poetry-verse verse-normal");
+  expect(html).toContain("أَوَّلٌ  وشَطْرٌ");
+  expect(html).toContain("مؤلِّف — كتاب — ص 24");
+  expect(html).toContain("callout-warning");
+  expect(html).not.toContain("<script>");
+  expect(html).not.toContain("onclick=");
+  expect(html).not.toContain("javascript:");
+  expect(documentText(doc)).toContain("أَوَّلٌ  وشَطْرٌ ثانٍ");
+  expect(documentText(doc)).toContain("اقتباسٌ من كتاب مؤلِّف كتاب 24");
+  expect(sourceSchema.parse({ title: "كتاب بلا رابط", page: "14" }).url).toBe(
+    "",
+  );
+  expect(
+    sourceSchema.safeParse({ title: "كتاب", url: "javascript:alert(1)" })
+      .success,
+  ).toBe(false);
+  expect(
+    sourceSchema.safeParse({
+      title: "كتاب",
+      url: "https://user:password@example.test",
+    }).success,
+  ).toBe(false);
+});

@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/auth";
 import { AdminShell } from "@/components/control/shell";
+import "../editorial.css";
 export const metadata = { robots: { index: false, follow: false } };
 export default async function AdminLayout({
   children,

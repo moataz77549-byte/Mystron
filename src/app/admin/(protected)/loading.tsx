@@ -1,8 +1,12 @@
-export default function Loading() {
+export default function AdminLoading() {
   return (
-    <div role="status" aria-label="جار تحميل الإدارة">
+    <section aria-busy="true" role="status">
+      <p>جارٍ تجهيز مساحة العمل…</p>
       <div className="skeleton" />
-      <p>جارٍ تحميل البيانات…</p>
-    </div>
+      <div className="control-grid">
+        <div className="skeleton" />
+        <div className="skeleton" />
+      </div>
+    </section>
   );
 }

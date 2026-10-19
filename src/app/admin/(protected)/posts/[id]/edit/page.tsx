@@ -8,7 +8,7 @@ export default async function Edit({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { db, permissions } = await requireAdmin();
+  const { db, permissions, user } = await requireAdmin();
   const id = (await params).id;
   if (!z.uuid().safeParse(id).success) notFound();
   const [p, a, c, links] = await Promise.all([
@@ -55,6 +55,7 @@ export default async function Edit({
   }
   return (
     <Studio
+      key={id}
       initial={
         {
           ...p.data,
@@ -64,6 +65,8 @@ export default async function Edit({
       authors={a.data}
       categories={c.data}
       publisher={!!permissions["posts.publish"]}
+      scheduler={!!permissions["posts.schedule"]}
+      userId={user.id}
     />
   );
 }

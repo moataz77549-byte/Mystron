@@ -1,5 +1,6 @@
 import { z } from "zod";
 import sanitizeHtml from "sanitize-html";
+import { richText } from "./text";
 export type RichNode = {
   type: string;
   text?: string;
@@ -26,6 +27,8 @@ const types = new Set([
   "image",
   "callout",
   "poetry",
+  "poetryVerse",
+  "citation",
   "footnote",
   "video",
 ]);
@@ -88,21 +91,17 @@ const escape = (s: unknown) =>
 export function safeLink(value: unknown): string | null {
   try {
     const u = new URL(String(value));
-    return ["http:", "https:"].includes(u.protocol) ? u.href : null;
+    return ["http:", "https:"].includes(u.protocol) &&
+      !u.username &&
+      !u.password
+      ? u.href
+      : null;
   } catch {
     return null;
   }
 }
 export function documentText(doc: RichNode): string {
-  return doc.type === "text"
-    ? doc.text || ""
-    : (doc.content || [])
-        .map(documentText)
-        .join(
-          ["paragraph", "heading", "listItem", "poetry"].includes(doc.type)
-            ? " "
-            : " ",
-        );
+  return richText(doc);
 }
 export function documentMedia(doc: RichNode): string[] {
   const ids = new Set<string>();
@@ -204,13 +203,36 @@ export function renderDocument(value: unknown): string {
       }
       return "";
     }
-    if (["callout", "poetry", "footnote"].includes(n.type))
+    if (n.type === "poetryVerse") {
+      const size = ["small", "normal", "large"].includes(String(a.size))
+        ? a.size
+        : "normal";
+      return `<div class="editor-poetry-verse verse-${size}" dir="rtl"><span>${escape(a.first)}</span><span>${escape(a.second)}</span></div>`;
+    }
+    if (n.type === "citation") {
+      const source = [a.author, a.book, a.page ? `ص ${String(a.page)}` : ""]
+        .filter(Boolean)
+        .map(escape)
+        .join(" — ");
+      const url = safeLink(a.url);
+      return `<figure class="editor-citation"><blockquote${common}>${escape(a.quote)}</blockquote><figcaption>${source}${url ? ` <a href="${escape(url)}" rel="nofollow noopener noreferrer">المصدر</a>` : ""}</figcaption></figure>`;
+    }
+    if (n.type === "callout") {
+      const kind = ["info", "note", "warning", "author"].includes(
+        String(a.kind),
+      )
+        ? a.kind
+        : "info";
+      return `<aside class="editor-callout callout-${kind}"${common}>${a.title ? `<strong>${escape(a.title)}</strong>` : ""}${body}</aside>`;
+    }
+    if (["poetry", "footnote"].includes(n.type))
       return `<aside class="editor-${n.type}"${common}>${body}</aside>`;
     return "";
   }
   return sanitizeHtml(render(doc), {
     allowedTags: [
       "p",
+      "div",
       "h1",
       "h2",
       "h3",

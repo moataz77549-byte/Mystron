@@ -3,7 +3,18 @@ import { authorizedUser } from "@/lib/auth";
 import { failure } from "@/lib/api";
 import { rateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
+import { postQuerySchema, postListArguments } from "@/lib/editorial/post-query";
 export async function GET(req: NextRequest) {
+  try {
+    return await readData(req);
+  } catch (error) {
+    return failure(
+      error instanceof z.ZodError ? "INVALID_INPUT" : "SERVICE_UNAVAILABLE",
+      error instanceof z.ZodError ? 400 : 503,
+    );
+  }
+}
+async function readData(req: NextRequest) {
   const identity = await authorizedUser();
   if (!identity) return failure("UNAUTHORIZED", 401);
   const resource = req.nextUrl.searchParams.get("resource");
@@ -31,7 +42,7 @@ export async function GET(req: NextRequest) {
   if (!identity.permissions[permissions[resource]])
     return failure("FORBIDDEN", 403);
   if (!(await rateLimit("admin-data:" + identity.user.id, 120, 60)))
-    return failure("RATE_LIMITED", 429);
+    return failure("RATE_LIMITED", 429, { "Retry-After": "60" });
   const page = z.coerce
     .number()
     .int()
@@ -40,50 +51,32 @@ export async function GET(req: NextRequest) {
     .safeParse(req.nextUrl.searchParams.get("page") || 1);
   if (!page.success) return failure("INVALID_INPUT", 400);
   if (resource === "posts") {
-    const search = req.nextUrl.searchParams.get("q") || "";
-    const status = req.nextUrl.searchParams.get("status") || "";
-    if (search.length > 100) return failure("INVALID_INPUT", 400);
-    const { data, error } = await identity.db.rpc("admin_post_list", {
-      p_page: page.data,
-      p_q: search,
-      p_status: status,
-    });
-    if (error) return failure("INVALID_QUERY", 400);
+    const input = Object.fromEntries(req.nextUrl.searchParams);
+    delete input.resource;
+    const query = postQuerySchema.parse(input);
+    const { data, error } = await identity.db.rpc(
+      "admin_post_list_filtered",
+      postListArguments(query),
+    );
+    if (error?.code === "PGRST202" || error?.code === "42883")
+      return failure("SCHEMA_UPDATE_REQUIRED", 503);
+    if (error)
+      return failure(
+        error.code === "42501" ? "FORBIDDEN" : "INVALID_QUERY",
+        error.code === "42501" ? 403 : 400,
+      );
     return NextResponse.json(
-      { data: data.rows, total: data.total, page: page.data, pageSize: 100 },
+      {
+        data: data.rows,
+        total: data.total,
+        page: query.page,
+        pageSize: query.page_size,
+      },
       { headers: { "Cache-Control": "private, no-store" } },
     );
   }
-  const fields =
-    resource === "posts"
-      ? "id,title,slug,status,version,deleted_at,updated_at"
-      : resource === "revisions"
-        ? "id,created_at"
-        : "*";
+  const fields = resource === "revisions" ? "id,created_at" : "*";
   let q = identity.db.from(tables[resource]).select(fields, { count: "exact" });
-  if (resource === "posts") {
-    const search = req.nextUrl.searchParams.get("q") || "";
-    if (search.length > 100) return failure("INVALID_INPUT", 400);
-    if (search) q = q.ilike("title", "%" + search.replace(/[\%_]/g, "") + "%");
-    const status = req.nextUrl.searchParams.get("status");
-    if (status) {
-      if (status === "trash") q = q.not("deleted_at", "is", null);
-      else {
-        if (
-          ![
-            "draft",
-            "review",
-            "scheduled",
-            "published",
-            "unpublished",
-            "archived",
-          ].includes(status)
-        )
-          return failure("INVALID_INPUT", 400);
-        q = q.eq("status", status).is("deleted_at", null);
-      }
-    }
-  }
   if (resource === "revisions") {
     const id = z.uuid().safeParse(req.nextUrl.searchParams.get("post"));
     if (!id.success) return failure("INVALID_INPUT", 400);

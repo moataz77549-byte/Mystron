@@ -26,30 +26,26 @@ import {
 } from "../src/lib/auth";
 beforeEach(() => {
   state.configured = true;
-  state.user
-    .mockReset()
-    .mockResolvedValue({
-      data: {
-        user: {
-          id: "fixture-user",
-          email_confirmed_at: "2026-10-19",
-          user_metadata: { role: "OWNER" },
-        },
+  state.user.mockReset().mockResolvedValue({
+    data: {
+      user: {
+        id: "fixture-user",
+        email_confirmed_at: "2026-10-19",
+        user_metadata: { role: "OWNER" },
       },
-      error: null,
-    });
-  state.identity
-    .mockReset()
-    .mockResolvedValue({
-      data: {
-        active: true,
-        roles: ["AUTHOR"],
-        permissions: { "posts.read": "own" },
-        pin_configured: false,
-        scope: { mode: "all", category_ids: [] },
-      },
-      error: null,
-    });
+    },
+    error: null,
+  });
+  state.identity.mockReset().mockResolvedValue({
+    data: {
+      active: true,
+      roles: ["AUTHOR"],
+      permissions: { "posts.read": "own" },
+      pin_configured: false,
+      scope: { mode: "all", category_ids: [] },
+    },
+    error: null,
+  });
 });
 it("trusts current database authorization rather than editable metadata", async () => {
   const identity = await authorizedUser();

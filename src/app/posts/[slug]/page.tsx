@@ -182,6 +182,12 @@ export default async function Article({
                     ) : (
                       s.title
                     )}
+                    {s.author && <span> — {s.author}</span>}
+                    {s.page && <span>، ص {s.page}</span>}
+                    {s.published_at && (
+                      <time dateTime={s.published_at}> — {s.published_at}</time>
+                    )}
+                    {s.notes && <p>{s.notes}</p>}
                   </li>
                 ))}
               </ol>
