@@ -2,10 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ZodError } from "zod";
 import { databaseConfigured } from "./env";
 import { rateLimit } from "./rate-limit";
-export function failure(code: string, status: number) {
+export function failure(
+  code: string,
+  status: number,
+  headers: Record<string, string> = {},
+) {
   return NextResponse.json(
     { error: { code } },
-    { status, headers: { "Cache-Control": "no-store" } },
+    { status, headers: { "Cache-Control": "no-store", ...headers } },
   );
 }
 export async function publicApi(
