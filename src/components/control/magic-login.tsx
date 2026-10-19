@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { adminErrorMessage, adminRequest } from "@/lib/client/request";
 export function MagicLogin() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -13,18 +14,16 @@ export function MagicLogin() {
           setBusy(true);
           const form = new FormData(e.currentTarget);
           try {
-            const r = await fetch("/auth/magic", {
+            await adminRequest("/auth/magic", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ email: form.get("email") }),
             });
             setMessage(
-              r.ok
-                ? "إذا كان الحساب مسجلاً فسيصلك رابط الدخول. لا يمنح الرابط صلاحية إدارية جديدة."
-                : "تعذر الطلب الآن. حاول لاحقاً.",
+              "إذا كان الحساب مسجلاً فسيصلك رابط الدخول. لا يمنح الرابط صلاحية إدارية جديدة.",
             );
-          } catch {
-            setMessage("تعذر الاتصال.");
+          } catch (error) {
+            setMessage(adminErrorMessage(error));
           } finally {
             setBusy(false);
           }

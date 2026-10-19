@@ -22,14 +22,20 @@ export async function POST(req: NextRequest) {
         900,
       ))
     )
-      return failure("RATE_LIMITED", 429);
-    await publicDatabase().auth.signInWithOtp({
+      return failure("RATE_LIMITED", 429, { "Retry-After": "900" });
+    const result = await publicDatabase().auth.signInWithOtp({
       email: b.email,
       options: {
         shouldCreateUser: false,
         emailRedirectTo: new URL("/auth/complete", siteUrl()).href,
       },
     });
+    if (result.error?.status === 429)
+      return failure("RATE_LIMITED", 429, { "Retry-After": "900" });
+    // Preserve account-enumeration protection for unknown accounts, but never
+    // claim mail was requested when the transport/provider is unavailable.
+    if (result.error && (!result.error.status || result.error.status >= 500))
+      return failure("SERVICE_UNAVAILABLE", 503);
     return NextResponse.json(
       { data: { requested: true } },
       { headers: { "Cache-Control": "no-store" } },

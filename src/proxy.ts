@@ -34,6 +34,14 @@ export async function proxy(request: NextRequest) {
   if (!path.startsWith("/admin") && !path.startsWith("/auth"))
     return NextResponse.next();
   let response = NextResponse.next({ request });
+  const hadAuthCookie = request.cookies
+    .getAll()
+    .some(
+      (cookie) =>
+        cookie.name.startsWith("sb-") &&
+        cookie.name.includes("auth-token") &&
+        cookie.value.length > 0,
+    );
   const { url, key } = publicEnv();
   const db = createServerClient(url, key, {
     cookies: {
@@ -60,9 +68,11 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname !== "/admin/login" &&
     (!user || !user.email_confirmed_at)
   ) {
-    const redirect = NextResponse.redirect(
-      new URL("/admin/login", request.url),
-    );
+    const target = new URL("/admin/login", request.url);
+    if (user && !user.email_confirmed_at)
+      target.searchParams.set("reason", "email");
+    else if (hadAuthCookie) target.searchParams.set("reason", "session");
+    const redirect = NextResponse.redirect(target);
     response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
     redirect.headers.set("Cache-Control", "private, no-store");
     return redirect;
