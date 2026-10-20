@@ -2,6 +2,7 @@ import { databaseConfigured } from "@/lib/env";
 import { MagicLogin } from "@/components/control/magic-login";
 import { privilegedDatabase } from "@/lib/supabase";
 import { LoginForm } from "./login-form";
+import { RecoveryForm } from "@/components/control/password";
 export const metadata = {
   title: "دخول الإدارة",
   robots: { index: false, follow: false },
@@ -47,6 +48,7 @@ export default async function Login({
         <>
           <LoginForm />
           <MagicLogin />
+          <RecoveryForm />
         </>
       ) : (
         <p className="status">
