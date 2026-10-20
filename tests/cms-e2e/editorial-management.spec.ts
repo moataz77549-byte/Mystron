@@ -1,4 +1,13 @@
-import { test, expect } from "@playwright/test";
+import { test as base, expect } from "@playwright/test";
+// Separate simulated clients retain the real production rate limiter.
+const test = base.extend({
+  extraHTTPHeaders: async ({}, provide, info) => {
+    const index = info.title.startsWith("scoped tag manager") ? 0 : 1;
+    await provide({
+      "x-vercel-forwarded-for": `192.0.2.${100 + index + (info.project.name === "mobile" ? 10 : 0)}`,
+    });
+  },
+});
 async function login(page: import("@playwright/test").Page) {
   await page.goto("/admin/login");
   await page
