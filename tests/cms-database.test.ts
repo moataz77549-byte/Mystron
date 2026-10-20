@@ -508,3 +508,153 @@ it("editorial list filters and Arabic normalization preserve current row permiss
   )!;
   await db.exec(readFileSync("supabase/migrations/" + migration, "utf8"));
 });
+
+it("tag merges reuse versioned saves, deduplicate tags and fail atomically on stale counts", async () => {
+  await actor(owner);
+  const first = await rpc("cms_save_post", [
+    null,
+    { title: "وسوم أولى", slug: "tags-first", tags: ["قديم", "نهائي", "ثابت"] },
+    null,
+  ]);
+  const second = await rpc("cms_save_post", [
+    null,
+    { title: "وسوم ثانية", slug: "tags-second", tags: ["قديم"] },
+    null,
+  ]);
+  await expect(
+    db.query("select cms_merge_tag($1,$2,$3)", ["قديم", "نهائي", 1]),
+  ).rejects.toThrow("VERSION_CONFLICT");
+  const untouched = await db.query<{ tags: string[]; version: number }>(
+    "select tags,version from posts where id=$1",
+    [first.id],
+  );
+  expect(untouched.rows[0].tags).toContain("قديم");
+  expect(untouched.rows[0].version).toBe(first.version);
+  const merged = await db.query<{ result: { updated: number } }>(
+    "select cms_merge_tag($1,$2,$3) result",
+    ["قديم", "نهائي", 2],
+  );
+  expect(merged.rows[0].result.updated).toBe(2);
+  const saved = await db.query<{ tags: string[]; version: number }>(
+    "select tags,version from posts where id=$1",
+    [first.id],
+  );
+  expect(saved.rows[0].tags).toEqual(["نهائي", "ثابت"]);
+  expect(saved.rows[0].version).toBe(first.version + 1);
+  expect(
+    (
+      await db.query("select id from post_revisions where post_id=$1", [
+        second.id,
+      ])
+    ).rows.length,
+  ).toBeGreaterThan(1);
+  const again = await db.query<{ result: { updated: number } }>(
+    "select cms_merge_tag($1,$2,$3) result",
+    ["قديم", "نهائي", 2],
+  );
+  expect(again.rows[0].result.updated).toBe(0);
+  await db.exec("reset role;set role anon");
+  await expect(db.query("select admin_tag_list(1,'')")).rejects.toThrow();
+  await actor(owner);
+});
+it("tag lists and mutations stay inside authors' allowed posts", async () => {
+  await actor(owner);
+  const privatePost = await rpc("cms_save_post", [
+    null,
+    { title: "وسم خاص", slug: "tag-private-owner", tags: ["وسم-خاص-للمالك"] },
+    null,
+  ]);
+  await actor(other);
+  const own = await rpc("cms_save_post", [
+    null,
+    { title: "وسم كاتب", slug: "tag-private-other", tags: ["وسم-خاص-للمالك"] },
+    null,
+  ]);
+  const list = await db.query<{
+    result: { rows: { posts: number; editable_posts: number }[] };
+  }>("select admin_tag_list(1,$1) result", ["وسم-خاص-للمالك"]);
+  expect(list.rows[0].result.rows[0]).toMatchObject({
+    posts: 1,
+    editable_posts: 1,
+  });
+  const merge = await db.query<{ result: { updated: number } }>(
+    "select cms_merge_tag($1,$2,$3) result",
+    ["وسم-خاص-للمالك", "وسم-الكاتب", 1],
+  );
+  expect(merge.rows[0].result.updated).toBe(1);
+  await actor(owner);
+  const original = await db.query<{ tags: string[] }>(
+    "select tags from posts where id=$1",
+    [privatePost.id],
+  );
+  expect(original.rows[0].tags).toEqual(["وسم-خاص-للمالك"]);
+  expect(
+    (
+      await db.query<{ tags: string[] }>("select tags from posts where id=$1", [
+        own.id,
+      ])
+    ).rows[0].tags,
+  ).toEqual(["وسم-الكاتب"]);
+});
+it("report decisions update comment moderation and audit atomically without exposing visitor hashes", async () => {
+  await actor(owner);
+  const item = await rpc("cms_save_post", [
+    null,
+    { title: "بلاغ اختبار", slug: "report-fixture-post" },
+    null,
+  ]);
+  await db.exec("reset role");
+  const comment = (
+    await db.query<{ id: string }>(
+      "insert into comments(post_id,guest_name,body,status) values($1,'زائر اختبار','تعليق يحتاج مراجعة','approved') returning id",
+      [item.id],
+    )
+  ).rows[0].id;
+  const report = (
+    await db.query<{ id: string }>(
+      "insert into comment_reports(comment_id,reason,visitor_hash) values($1,'سبب بلاغ الاختبار','private-visitor-hash') returning id",
+      [comment],
+    )
+  ).rows[0].id;
+  await actor(other);
+  await expect(
+    db.query("select admin_report_list(1,'pending')"),
+  ).rejects.toThrow("FORBIDDEN");
+  await expect(
+    db.query("select cms_resolve_report($1,'hidden')", [report]),
+  ).rejects.toThrow("FORBIDDEN");
+  await actor(owner);
+  const list = await db.query<{ result: unknown }>(
+    "select admin_report_list(1,'pending') result",
+  );
+  expect(JSON.stringify(list.rows)).not.toContain("private-visitor-hash");
+  await db.query("select cms_resolve_report($1,'hidden')", [report]);
+  const updated = await db.query<{ status: string }>(
+    "select status from comments where id=$1",
+    [comment],
+  );
+  expect(updated.rows[0].status).toBe("hidden");
+  const decision = await db.query<{ resolution: string; resolved_at: string }>(
+    "select resolution,resolved_at from comment_reports where id=$1",
+    [report],
+  );
+  expect(decision.rows[0].resolution).toBe("hidden");
+  expect(decision.rows[0].resolved_at).toBeTruthy();
+  await db.query("select cms_resolve_report($1,'dismissed')", [report]);
+  expect(
+    (
+      await db.query<{ resolution: string }>(
+        "select resolution from comment_reports where id=$1",
+        [report],
+      )
+    ).rows[0].resolution,
+  ).toBe("hidden");
+  expect(
+    (
+      await db.query(
+        "select id from audit_logs where entity_id=$1 and action='comment_report_hidden'",
+        [report],
+      )
+    ).rows,
+  ).toHaveLength(1);
+});
