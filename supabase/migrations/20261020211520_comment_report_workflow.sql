@@ -40,3 +40,22 @@ begin
 end $$;
 revoke all on function public.cms_resolve_report(uuid,text) from public,anon;
 grant execute on function public.cms_resolve_report(uuid,text) to authenticated;
+
+-- Admin lists must apply editorial scope explicitly, including public comments.
+create or replace function public.admin_comment_list(p_page int default 1,p_status text default 'pending')
+returns jsonb language plpgsql stable security definer set search_path='' as $$
+declare result jsonb;
+begin
+ perform private.require_permission('comments.moderate');
+ if p_page is null or p_page not between 1 and 10000 or p_status is null or p_status not in ('pending','approved','rejected','hidden','all') then raise exception 'INVALID_INPUT';end if;
+ with visible as materialized (
+  select c.id,c.guest_name,c.body,c.status,c.post_id,c.deleted_at,c.created_at
+  from public.comments c join public.posts p on p.id=c.post_id
+  where c.deleted_at is null and private.can_post(p,'comments.moderate')
+  and(p_status='all' or c.status=p_status)
+ ), items as(select * from visible order by created_at desc,id limit 25 offset(p_page-1)*25)
+ select jsonb_build_object('rows',coalesce((select jsonb_agg(i) from items i),'[]'::jsonb),'total',(select count(*) from visible),'page',p_page,'page_size',25) into result;
+ return result;
+end $$;
+revoke all on function public.admin_comment_list(int,text) from public,anon;
+grant execute on function public.admin_comment_list(int,text) to authenticated;

@@ -658,3 +658,99 @@ it("report decisions update comment moderation and audit atomically without expo
     ).rows,
   ).toHaveLength(1);
 });
+
+it("scoped moderation lists exclude out-of-category comments even when publicly approved", async () => {
+  await actor(owner);
+  const permittedCategory = await rpc("cms_save_category", [
+    null,
+    { name: "نطاق مراجعة أول", slug: "report-scope-first" },
+    null,
+  ]);
+  const secondCategory = await rpc("cms_save_category", [
+    null,
+    { name: "نطاق مراجعة ثان", slug: "report-scope-second" },
+    null,
+  ]);
+  const allowed = await rpc("cms_save_post", [
+    null,
+    {
+      title: "نطاق مسموح",
+      slug: "report-scope-allowed",
+      primary_category_id: permittedCategory.id,
+      category_ids: [permittedCategory.id],
+    },
+    null,
+  ]);
+  const denied = await rpc("cms_save_post", [
+    null,
+    {
+      title: "نطاق ممنوع",
+      slug: "report-scope-denied",
+      primary_category_id: secondCategory.id,
+      category_ids: [secondCategory.id],
+    },
+    null,
+  ]);
+  await db.exec("reset role");
+  const firstComment = (
+    await db.query<{ id: string }>(
+      "insert into comments(post_id,guest_name,body,status) values($1,'زائر','مسموح','approved') returning id",
+      [allowed.id],
+    )
+  ).rows[0].id;
+  const secondComment = (
+    await db.query<{ id: string }>(
+      "insert into comments(post_id,guest_name,body,status) values($1,'زائر','ممنوع','approved') returning id",
+      [denied.id],
+    )
+  ).rows[0].id;
+  const allowedReport = (
+    await db.query<{ id: string }>(
+      "insert into comment_reports(comment_id,reason,visitor_hash) values($1,'بلاغ مسموح','scope-visitor-1') returning id",
+      [firstComment],
+    )
+  ).rows[0].id;
+  const deniedReport = (
+    await db.query<{ id: string }>(
+      "insert into comment_reports(comment_id,reason,visitor_hash) values($1,'بلاغ ممنوع','scope-visitor-2') returning id",
+      [secondComment],
+    )
+  ).rows[0].id;
+  await db.query("delete from user_roles where user_id=$1", [other]);
+  await db.query(
+    "insert into user_roles select $1,id from roles where name='EDITOR'",
+    [other],
+  );
+  await db.query(
+    "update admin_memberships set scope_mode='restricted',category_ids=array[$2::uuid] where user_id=$1",
+    [other, permittedCategory.id],
+  );
+  await actor(other);
+  const comments = await db.query<{ result: { rows: { id: string }[] } }>(
+    "select admin_comment_list(1,'all') result",
+  );
+  expect(comments.rows[0].result.rows.map((row) => row.id)).toContain(
+    firstComment,
+  );
+  expect(comments.rows[0].result.rows.map((row) => row.id)).not.toContain(
+    secondComment,
+  );
+  const reports = await db.query<{ result: { rows: { id: string }[] } }>(
+    "select admin_report_list(1,'pending') result",
+  );
+  expect(reports.rows[0].result.rows.map((row) => row.id)).toContain(
+    allowedReport,
+  );
+  expect(reports.rows[0].result.rows.map((row) => row.id)).not.toContain(
+    deniedReport,
+  );
+  await expect(
+    db.query("select cms_resolve_report($1,'hidden')", [deniedReport]),
+  ).rejects.toThrow("FORBIDDEN");
+  await actor(owner);
+  const untouched = await db.query<{ resolved_at: string | null }>(
+    "select resolved_at from comment_reports where id=$1",
+    [deniedReport],
+  );
+  expect(untouched.rows[0].resolved_at).toBeNull();
+});

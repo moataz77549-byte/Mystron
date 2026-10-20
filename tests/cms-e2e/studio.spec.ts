@@ -7,7 +7,9 @@ test("editorial workflow uses real PostgreSQL RPC/RLS with local Auth/Storage fi
   await page.goto("/admin");
   await expect(page).toHaveURL(/admin\/login/);
   await page.getByLabel("البريد الإلكتروني").fill("fixture-owner@example.test");
-  await page.getByLabel("كلمة المرور").fill("Fixture-password-2026");
+  await page
+    .getByLabel("كلمة المرور", { exact: true })
+    .fill("Fixture-password-2026");
   await page.getByRole("button", { name: "تسجيل الدخول", exact: true }).click();
   await expect(page).toHaveURL(/\/admin\/dashboard$/);
   await page.goto("/admin/authors");

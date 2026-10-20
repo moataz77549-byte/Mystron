@@ -18,22 +18,17 @@ export default async function Page({
   const parsed = querySchema.safeParse(await searchParams);
   if (!parsed.success) return <p role="alert">فلاتر التعليقات غير صالحة.</p>;
   const { page, status } = parsed.data;
-  let query = db
-    .from("comments")
-    .select("id,guest_name,body,status,post_id,deleted_at", { count: "exact" })
-    .is("deleted_at", null);
-  if (status !== "all") query = query.eq("status", status);
-  const result = await query
-    .order("created_at", { ascending: false })
-    .order("id")
-    .range((page - 1) * 25, page * 25 - 1);
+  const result = await db.rpc("admin_comment_list", {
+    p_page: page,
+    p_status: status,
+  });
   if (result.error) throw new Error("تعذر تحميل التعليقات");
   return (
     <Moderation
       key={page + ":" + status}
-      initial={result.data}
+      initial={result.data.rows}
       page={page}
-      total={result.count || 0}
+      total={result.data.total}
       filter={status}
     />
   );
