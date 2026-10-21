@@ -2,23 +2,104 @@ import { test as base, expect } from "@playwright/test";
 // Separate simulated clients retain the real production rate limiter.
 const test = base.extend({
   extraHTTPHeaders: async ({}, provide, info) => {
-    const index = info.title.startsWith("scoped tag manager") ? 0 : 1;
+    const index = [
+      "scoped tag manager",
+      "password recovery",
+      "catalog metadata",
+      "account sessions",
+    ].findIndex((prefix) => info.title.startsWith(prefix));
     await provide({
       "x-vercel-forwarded-for": `192.0.2.${100 + index + (info.project.name === "mobile" ? 10 : 0)}`,
     });
   },
 });
-async function login(page: import("@playwright/test").Page) {
+async function login(
+  page: import("@playwright/test").Page,
+  email = "fixture-owner@example.test",
+) {
   await page.goto("/admin/login");
-  await page
-    .getByLabel("البريد الإلكتروني", { exact: true })
-    .fill("fixture-owner@example.test");
+  await page.getByLabel("البريد الإلكتروني", { exact: true }).fill(email);
   await page
     .getByLabel("كلمة المرور", { exact: true })
     .fill("Fixture-password-2026");
   await page.getByRole("button", { name: "تسجيل الدخول", exact: true }).click();
   await expect(page).toHaveURL(/admin\/dashboard/);
 }
+test("account sessions let an author inspect only their account without security management permission", async ({
+  page,
+}) => {
+  await login(page, "fixture-author@example.test");
+  await page.goto("/admin/account/sessions");
+  await expect(
+    page.getByRole("heading", { name: "جلساتي الإدارية", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "الجلسة الحالية", exact: true }),
+  ).toBeVisible();
+  const denied = await page.request.post("/api/v1/admin/account/sessions", {
+    headers: { origin: "http://127.0.0.1:3000" },
+    data: { id: "11111111-1111-4111-8111-111111111111" },
+  });
+  expect(denied.status()).toBe(404);
+  expect(await denied.json()).toEqual({ error: { code: "NOT_FOUND" } });
+});
+test("catalog metadata persists and appears on public category and author pages", async ({
+  page,
+}, info) => {
+  await login(page);
+  const slug = "metadata-browser-" + info.project.name;
+  await page.goto("/admin/categories");
+  await page
+    .getByLabel("اسم القسم", { exact: true })
+    .fill("قسم تخصصي " + info.project.name);
+  await page.getByLabel("الرابط الدائم", { exact: true }).fill(slug);
+  await page.getByLabel("لون القسم", { exact: true }).fill("#c77955");
+  await page.getByRole("button", { name: "حفظ", exact: true }).click();
+  const category = page.locator("article").filter({
+    has: page.getByRole("heading", {
+      name: "قسم تخصصي " + info.project.name,
+      exact: true,
+    }),
+  });
+  await category.getByRole("button", { name: "تعديل", exact: true }).click();
+  await expect(page.getByLabel("لون القسم", { exact: true })).toHaveValue(
+    "#c77955",
+  );
+  await page.goto("/categories/" + slug);
+  const heading = page.getByRole("heading", {
+    name: "قسم تخصصي " + info.project.name,
+    exact: true,
+  });
+  await expect(heading).toBeVisible();
+  await expect(page.locator("section.prose")).toHaveCSS(
+    "border-top-color",
+    "rgb(199, 121, 85)",
+  );
+  await page.goto("/admin/authors");
+  await page
+    .getByLabel("اسم الكاتب", { exact: true })
+    .fill("كاتب متخصص " + info.project.name);
+  await page.getByLabel("الرابط الدائم", { exact: true }).fill(slug);
+  await page
+    .getByLabel("التخصص", { exact: true })
+    .fill("الأدب والثقافة العربية");
+  await page.getByRole("button", { name: "حفظ", exact: true }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "كاتب متخصص " + info.project.name,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.goto("/authors/" + slug);
+  await expect(
+    page.getByText("الأدب والثقافة العربية", { exact: true }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
 test("scoped tag manager saves through real SQL and remains usable on phone widths", async ({
   page,
 }, info) => {

@@ -5,6 +5,7 @@ import { databaseConfigured } from "@/lib/env";
 import { Empty, PostCard } from "@/components/content";
 import Image from "next/image";
 import Link from "next/link";
+import { categoryAccent } from "@/lib/editorial/catalog-metadata";
 export async function generateMetadata({
   params,
 }: {
@@ -41,7 +42,13 @@ export default async function Category({
   const p = await searchParams;
   const result = await posts({ category: slug, page: p.page });
   return (
-    <section className="prose" style={{ maxWidth: "none" }}>
+    <section
+      className="prose"
+      style={{
+        maxWidth: "none",
+        borderBlockStart: `4px solid ${categoryAccent(c.color)}`,
+      }}
+    >
       <h1>{c.name}</h1>
       {c.image_asset_id && (
         <Image

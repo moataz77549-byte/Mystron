@@ -1,24 +1,20 @@
-# Production acceptance — Mystron
+# بوابات قبول الإنتاج — 2026-10-21
 
-Checked 2026-10-19. This is the release gate, not a checklist of presumed completed functions.
+هذا سجل قبول فعلي وليس إعلان اكتمال.
 
-- **GitHub delivery:** PR #1 on `final-production-recovery`; awaiting review.
-- **Automated CI:** Run 39175237351 passed both `verify` and `python`.
-- **Vercel preview:** `mystron-bzgt` deployment `dpl_35LrqWqagm7C7zB1j6mfnJ6CwM7e` reached READY; build only.
-- **Canonical Vercel:** `mystron` production READY, but authenticated HTTP/API acceptance remains unverified.
-- **Supabase:** 48 migrations, six categories, one Storage bucket, four active Cron jobs.
-- **Owner Auth:** Zero live Auth users; blocked pending verified owner sign-in.
-- **Owner PIN:** Blocked until owner verification and authenticated PIN setup.
-- **Admin/CMS:** Local fixture integration passes; a real owner workflow is blocked.
-- **Publication/cron:** No real post; Cron job success is not editorial publication acceptance.
-- **Telegram:** Railway Online/SUCCESS and POST /webhook 200; no real owner command test.
-- **AI:** Disabled by owner choice, as required.
-- **Security:** Function grants and definer notices need live role review.
-- **Backup/restore:** No verified independent restore rehearsal.
-- **Android API:** Contracts exist; canonical live endpoints are unverified.
+- PR #1 و#2 دُمجا سابقاً؛ العمل الجاري في [PR #3](https://github.com/moataz77549-byte/Mystron/pull/3) على فرع الإصلاح نفسه، ويبقى مسودة.
+- مشروع Vercel المعتمد هو mystron: prj_wSmsdrRMlCR2zlMUTeYknVowFXHO. رابط Preview وأدلة CI في PR؛ لا يُستخدم المشروع المشابه mystron-bzgt.
+- فحص الإنتاج للقراءة فقط: health HTTP 200، قاعدة البيانات جاهزة، مستخدم Auth واحد، صفر مقالات، 49 migration، أربعة Cron فعالة، وصفر جداول عامة بلا RLS. وجود المستخدم لا يثبت دورة قبول المالك.
+- Railway Telegram Online/SUCCESS. إنشاء واستهلاك رابط وربط الحساب وإرسال الأوامر والنشر والإشعارات الحقيقية لم يُختبر بعد.
+- AI يبقى معطلاً. لا أسرار إنتاجية في Preview ولا محتوى تجريبي في الإنتاج.
 
-**Overall verdict: NOT READY** for the full feature set or public announcement.
+## خطوات القبول والترحيل
 
-Do not bypass verified Auth, fabricate content, turn off RLS, expose service keys, silently promote a preview, or claim an empty-data local CMS fixture is a production editorial test. Passing `next build` or receiving a Telegram webhook is a necessary but insufficient gate.
+1. راجع PR وفحوص أحدث commit وأدلة المتصفح، وجهّز نسخة احتياطية مع تجربة استعادة مستقلة وخطة تراجع.
+2. جهّز Staging Supabase/Auth/Storage مع بيانات اختبار مصرح بها ومتغيرات Preview مستقلة، دون إعادة استخدام أسرار الإنتاج.
+3. طبّق migrations الفرع بالترتيب عبر آلية الترحيل القائمة. توجد أربع migrations جديدة للوسوم والبلاغات/التعليقات وبيانات الأقسام/الكتّاب وجلسات الحساب، اختُبرت معزولاً ولم تُطبق على الإنتاج بهذه المتابعة.
+4. نفّذ حالات القبول الـ25 المبينة في ADMIN_OVERHAUL_TEST_REPORT.md، خصوصاً بريد الاستعادة والدعوات وPIN والتخزين والجدولة بالتوقيت اليمني وTelegram وإبطال الجلسات ونطاق الأقسام.
+5. أكمل الصفحات الثابتة الديناميكية وقرار APPROVED، ومراجعة تحذيرات Supabase والتطوير، ثم فحص Android فعلي وإمكانية الوصول.
+6. بعد القبول والمراجعة وموافقة المالك فقط، نفّذ ترحيلاً متوافقاً ثم انشر البناء المراجع. أوقف الترقية عند أي فشل. التراجع البرمجي يعيد البناء السابق؛ لا يحذف بيانات أو migrations دون تقييم مستقل للتوافق.
 
-Promote only a reviewed build with stable environment, working real Auth and CMS acceptance, documented rollback, safe backup/recovery and owner approval.
+**النتيجة: كامل النطاق غير جاهز للقبول الإنتاجي بعد.** الاختبارات المعزولة ونجاح البناء لا يثبتان اكتمال الخدمات المستضافة. لا دمج في main أو ترقية Production بهذه المتابعة.

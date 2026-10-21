@@ -42,6 +42,7 @@ export async function adminRequest<T>(
   return body as T;
 }
 const messages: Record<string, string> = {
+  CURRENT_SESSION_USE_LOGOUT: "استخدم تسجيل الخروج لإنهاء الجلسة الحالية.",
   SERVICE_UNAVAILABLE: "الخدمة غير متاحة حالياً. حاول بعد قليل.",
   WEAK_PASSWORD: "كلمة المرور ضعيفة وفق سياسة الأمان. اختر كلمة أقوى.",
   SAME_PASSWORD: "اختر كلمة مرور مختلفة عن الكلمة الحالية.",

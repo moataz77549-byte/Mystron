@@ -14,6 +14,7 @@ import { publicDatabase } from "@/lib/supabase";
 import { publicConfiguration } from "@/lib/control/settings-service";
 import { Empty, PostCard } from "@/components/content";
 import { Ticker } from "@/components/ticker";
+import { categoryAccent } from "@/lib/editorial/catalog-metadata";
 export default async function Home() {
   const [d, config, advertisements] = await Promise.all([
     homeData(),
@@ -112,6 +113,9 @@ export default async function Home() {
                 className="category-card"
                 key={c.id}
                 href={"/categories/" + c.slug}
+                style={{
+                  borderBlockStart: `4px solid ${categoryAccent(c.color)}`,
+                }}
               >
                 <h3>{c.name}</h3>
                 <span>{c.description || "اكتشف تدوينات هذا القسم"} ←</span>

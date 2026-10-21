@@ -79,7 +79,10 @@ export const adminGroups: AdminGroup[] = [
   {
     id: "account",
     label: "حسابي",
-    links: [link("account", "الملف الشخصي وحماية PIN")],
+    links: [
+      link("account", "الملف الشخصي وحماية PIN"),
+      link("account/sessions", "جلساتي الإدارية"),
+    ],
   },
 ];
 export const adminLinks = adminGroups.flatMap((group) => group.links);

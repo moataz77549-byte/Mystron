@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MAYSTROON Public API",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "description": "Published public content and verified-session administration. Android consumers use JSON; write requests send the configured site Origin. Optional grounded AI, verified-session Telegram linking and signed automation gateway."
   },
   "servers": [
@@ -3941,6 +3941,403 @@
           },
           "503": {
             "description": "Disabled, unconfigured or unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/tags": {
+      "get": {
+        "operationId": "admin_tags_read",
+        "summary": "Search tags within editorial scope",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "description": "Current verified admin session; results are limited to authorized data and are not cached.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "default": ""
+            }
+          }
+        ]
+      },
+      "post": {
+        "operationId": "admin_tags_merge",
+        "summary": "Rename or merge tags using versioned CMS saves",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "source": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "target": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "expected_count": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 500
+                  }
+                },
+                "required": ["source", "target", "expected_count"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/reports": {
+      "post": {
+        "operationId": "admin_reports_resolve",
+        "summary": "Resolve a report and moderate its comment transactionally",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "action": {
+                    "enum": ["dismissed", "hidden", "rejected"]
+                  }
+                },
+                "required": ["id", "action"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/account/sessions": {
+      "get": {
+        "operationId": "admin_own_sessions",
+        "summary": "List only the current account sessions",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "description": "Current verified admin session; results are limited to authorized data and are not cached.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1
+            }
+          }
+        ]
+      },
+      "post": {
+        "operationId": "admin_own_session_revoke",
+        "summary": "Revoke administrative access for another owned session",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": ["id"]
+              }
+            }
+          }
+        },
+        "description": "Uses the existing immediate admin revocation store. Does not claim to invalidate every Auth access token. The current session uses /auth/logout."
+      }
+    },
+    "/auth/recovery": {
+      "post": {
+        "operationId": "auth_password_recovery",
+        "summary": "auth_password_recovery",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 254
+                  }
+                },
+                "required": ["email"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/password": {
+      "post": {
+        "operationId": "auth_password_update",
+        "summary": "auth_password_update",
+        "security": [
+          {
+            "adminSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "minLength": 12,
+                    "maxLength": 128
+                  },
+                  "confirmation": {
+                    "type": "string",
+                    "minLength": 12,
+                    "maxLength": 128
+                  }
+                },
+                "required": ["password", "confirmation"]
+              }
+            }
           }
         }
       }

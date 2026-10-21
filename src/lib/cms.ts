@@ -63,6 +63,10 @@ const categoryPatch = z
     name: short,
     slug: short.regex(/^[\p{L}\p{N}_-]+$/u),
     description: z.string().max(3000).nullable().optional(),
+    color: z
+      .string()
+      .regex(/^#[0-9a-f]{6}$/i)
+      .optional(),
     sort_order: z.number().int().min(-10000).max(10000).optional(),
     is_active: z.boolean().optional(),
     parent_id: nullableId.optional(),
@@ -77,6 +81,7 @@ const authorPatch = z
     short_name: short.nullable().optional(),
     slug: short.regex(/^[\p{L}\p{N}_-]+$/u),
     bio: z.string().max(10000).nullable().optional(),
+    specialty: z.string().trim().max(200).nullable().optional(),
     country: short.nullable().optional(),
     city: short.nullable().optional(),
     website: url.optional(),

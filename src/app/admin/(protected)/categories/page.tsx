@@ -19,6 +19,12 @@ export default async function Page() {
         { key: "name", label: "اسم القسم" },
         { key: "slug", label: "الرابط الدائم" },
         {
+          key: "color",
+          label: "لون القسم",
+          kind: "color",
+          defaultValue: "#267E81",
+        },
+        {
           key: "description",
           label: "الوصف",
           kind: "textarea",
