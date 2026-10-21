@@ -58,10 +58,24 @@ function run(command, args, options = {}) {
     maxBuffer: 128 * 1024 * 1024,
     ...spawnOptions,
   });
-  if (result.status !== 0)
+  if (result.status !== 0) {
+    // This mode has no production credentials or restored production data.
+    // Keep generated local credentials out of the diagnostic excerpt too.
+    if (process.argv[2] === "local")
+      console.error(
+        (result.stderr || "")
+          .replace(/eyJ[A-Za-z0-9_.-]+/g, "[local JWT omitted]")
+          .replace(/postgres(?:ql)?:\/\/\S+/g, "[local database URL omitted]")
+          .replace(
+            /((?:password|secret|token|key)\s*[:=]\s*)\S+/gi,
+            "$1[omitted]",
+          )
+          .slice(-12000),
+      );
     throw new ReleaseError(
       `Command failed: ${command === cli ? "supabase " + args.slice(0, 2).join(" ") : command}; diagnostics withheld to protect backup data`,
     );
+  }
   return mergeOutput ? result.stdout + "\n" + result.stderr : result.stdout;
 }
 const supa = (...args) => run(cli, args);
@@ -548,6 +562,31 @@ async function localAcceptance() {
       ),
     },
   );
+  const { dockerBrowser } = await import("./docker-browser.mjs");
+  const status = JSON.parse(supa("status", "--workdir", local, "-o", "json"));
+  await dockerBrowser(status, async (id) => {
+    assert(/^[a-f0-9-]{36}$/.test(id), "Invalid local user identity");
+    const sql = `insert into public.admin_memberships(user_id) values('${id}') on conflict do nothing;
+      insert into public.user_roles(user_id,role_id) select '${id}',id from public.roles where name='ADMIN';
+      insert into public.user_permissions(user_id,permission_key,effect,scope) select '${id}',key,'allow','all' from public.permissions where key not in ('roles.manage','security.manage','integrations.manage','maintenance.manage') on conflict do nothing;`;
+    run(
+      "docker",
+      [
+        "exec",
+        "-i",
+        container,
+        "psql",
+        "-X",
+        "-U",
+        "postgres",
+        "-d",
+        "postgres",
+        "-v",
+        "ON_ERROR_STOP=1",
+      ],
+      { input: sql },
+    );
+  });
 }
 async function restoreStorage(manifest) {
   const status = JSON.parse(supa("status", "--workdir", local, "-o", "json"));

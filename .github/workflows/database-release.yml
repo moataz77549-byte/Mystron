@@ -26,6 +26,7 @@ jobs:
       - name: Require latest main to be integrated
         run: git merge-base --is-ancestor origin/main HEAD
       - run: node --test scripts/db-release.test.mjs
+      - run: npx playwright install --with-deps chromium
       - name: Real Supabase Docker migration and RLS acceptance (no production secrets)
         run: node scripts/db-release.mjs local
       - name: Remove containers, volumes and temporary files
@@ -54,6 +55,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REVIEWED_SHA: ${{ vars.MAYSTROON_DB_RELEASE_SHA }}
       - run: npm ci
+      - run: npx playwright install --with-deps chromium
       - name: Encrypted private backup, isolated restore, SQL acceptance and exact dry-run
         id: backup
         run: node scripts/db-release.mjs preflight
