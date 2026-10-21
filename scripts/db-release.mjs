@@ -868,6 +868,7 @@ async function main() {
     const { seedLocalBackup, verifyLocalBackupLogin } =
       await import("./docker-browser.mjs");
     const credentials = await seedLocalBackup(status);
+    console.log("Local Auth and Storage backup fixtures created.");
     await mkdir(join(backup, "objects"), { recursive: true, mode: 0o700 });
     const storageManifest = await inventoryStorage(
       join(backup, "objects"),
@@ -875,12 +876,16 @@ async function main() {
       status.SERVICE_ROLE_KEY,
     );
     const captured = await captureDatabase(localQuery, [
-      "--local",
+      // db dump has no --local flag in pinned CLI 2.120.0. This is the
+      // disposable stack's public default credential, never a linked URL.
+      "--db-url",
+      `postgresql://postgres:postgres@${container}:5432/postgres`,
       "--workdir",
       local,
       "--network-id",
       network,
     ]);
+    console.log("Disposable baseline database and Storage dumps captured.");
     await rm(join(local, "supabase/migrations"), {
       recursive: true,
       force: true,
@@ -922,6 +927,12 @@ if (
 )
   main().catch((error) => {
     if (error instanceof ReleaseError) console.error(error.message);
+    else if (process.argv[2] === "local")
+      console.error(
+        error.message
+          .replace(/eyJ[A-Za-z0-9_.-]+/g, "[local JWT omitted]")
+          .replace(/postgres(?:ql)?:\/\/\S+/g, "[local database URL omitted]"),
+      );
     console.error(
       "Release stopped. No automatic rollback or ledger repair was attempted. Check the last completed gate; private command diagnostics are intentionally not logged.",
     );

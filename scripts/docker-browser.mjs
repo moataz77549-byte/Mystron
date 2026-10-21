@@ -5,8 +5,19 @@ import { chromium, expect } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
 export async function seedLocalBackup(status) {
+  console.log(
+    "Checking local API status fields and health before backup seed.",
+  );
+  if (!status.API_URL || !status.SERVICE_ROLE_KEY || !status.ANON_KEY)
+    throw Error("Local CLI status lacks required API fields");
   if (new URL(status.API_URL).hostname !== "127.0.0.1")
     throw Error("Local API required");
+  const health = await fetch(status.API_URL + "/auth/v1/health", {
+    headers: { apikey: status.ANON_KEY },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!health.ok)
+    throw Error("Local Auth health check failed: " + health.status);
   const email = "backup-local@example.test",
     password = randomBytes(24).toString("base64url");
   const admin = createClient(status.API_URL, status.SERVICE_ROLE_KEY, {
@@ -150,8 +161,12 @@ export async function dockerBrowser(status, grantUser) {
     ).toBeVisible();
     await page.goto("/admin/posts/new");
     await page
-      .getByLabel("العنوان", { exact: true })
+      .getByLabel("عنوان المسودة", { exact: true })
       .fill("مقال Docker " + suffix);
+    await page
+      .getByRole("button", { name: "إنشاء وفتح المحرر", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/edit$/);
     await page
       .getByLabel("الرابط الدائم", { exact: true })
       .fill("docker-post-" + suffix);
@@ -170,6 +185,18 @@ export async function dockerBrowser(status, grantUser) {
     ).toBeVisible();
     await page.reload();
     await expect(page.locator(".tiptap")).toContainText("نص عربي محفوظ");
+    await page
+      .getByRole("button", { name: "إرسال للمراجعة", exact: true })
+      .click();
+    await expect(page.locator(".studio-top [role=status]")).toContainText(
+      "قيد المراجعة",
+    );
+    await page
+      .getByRole("button", { name: "اعتماد النسخة الحالية", exact: true })
+      .click();
+    await expect(page.locator(".studio-top [role=status]")).toContainText(
+      "معتمد تحريرياً",
+    );
     await page.getByRole("button", { name: "نشر", exact: true }).click();
     await expect(
       page.getByRole("status").filter({ hasText: "منشورة" }),
@@ -181,8 +208,10 @@ export async function dockerBrowser(status, grantUser) {
     );
     const tags = await context.request.get("/api/v1/admin/tags");
     expect(tags.status()).toBe(200);
-    const reports = await context.request.get("/api/v1/admin/reports");
-    expect(reports.status()).toBe(200);
+    await page.goto("/admin/reports");
+    await expect(
+      page.getByRole("heading", { name: "بلاغات التعليقات", exact: true }),
+    ).toBeVisible();
     await page.goto("/admin/account/sessions");
     await expect(
       page.getByRole("heading", { name: "الجلسة الحالية", exact: true }),
@@ -200,6 +229,14 @@ export async function dockerBrowser(status, grantUser) {
       .fill("نص الصفحة العربية");
     await page.getByRole("button", { name: "حفظ الصفحة", exact: true }).click();
     await expect(page.getByRole("status")).toHaveText("تم الحفظ.");
+    await page.getByLabel("نشر الصفحة للعامة", { exact: true }).check();
+    await page.getByRole("button", { name: "حفظ الصفحة", exact: true }).click();
+    await expect(page.getByRole("status")).toHaveText("تم الحفظ.");
+    await page.goto("/pages/docker-page-" + suffix);
+    await expect(
+      page.getByText("نص الصفحة العربية", { exact: true }),
+    ).toBeVisible();
+    await page.goto("/admin/pages");
     for (const width of [360, 390, 412, 768, 1280]) {
       await page.setViewportSize({ width, height: 900 });
       expect(
