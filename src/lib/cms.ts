@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { sitePageInput } from "./editorial/site-pages-schema";
 import { sourceSchema } from "./editor/sources";
 import { revalidatePath } from "next/cache";
 import { authorizedUser } from "./auth";
@@ -168,6 +169,14 @@ export async function cmsCommand(resource: string, raw: unknown) {
           : {}),
       },
     };
+  } else if (resource === "pages") {
+    const patch = sitePageInput.parse(b.patch);
+    rpc = "cms_save_page";
+    args = {
+      p_id: b.id || null,
+      p_expected_version: b.version || null,
+      p_patch: { ...patch, content_json: validateDocument(patch.content_json) },
+    };
   } else if (resource === "transitions") {
     rpc = "cms_transition_post";
     args = {
@@ -175,6 +184,7 @@ export async function cmsCommand(resource: string, raw: unknown) {
       p_expected_version: z.number().int().parse(b.version),
       p_action: z
         .enum([
+          "approve",
           "publish",
           "unpublished",
           "review",
@@ -265,6 +275,13 @@ export async function cmsCommand(resource: string, raw: unknown) {
   } else throw new Error("NOT_FOUND");
   const { data, error } = await identity.db.rpc(rpc, args);
   if (error) {
+    if (
+      (resource === "categories" || resource === "authors") &&
+      error.message.includes("UNKNOWN_FIELD") &&
+      ((b.patch as Record<string, unknown>)?.color !== undefined ||
+        (b.patch as Record<string, unknown>)?.specialty !== undefined)
+    )
+      throw new Error("SCHEMA_UPDATE_REQUIRED");
     const known = [
       "PIN_SETUP_REQUIRED",
       "PIN_VERIFICATION_REQUIRED",
@@ -280,6 +297,7 @@ export async function cmsCommand(resource: string, raw: unknown) {
       "INVALID_MEDIA",
       "SLUG_RESERVED",
       "POST_DELETED",
+      "APPROVAL_REQUIRES_REVIEW",
     ];
     throw new Error(
       known.find((c) => error.message.includes(c)) || "INVALID_OPERATION",

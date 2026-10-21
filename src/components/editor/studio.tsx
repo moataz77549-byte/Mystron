@@ -9,24 +9,12 @@ import {
   useSyncExternalStore,
 } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import TextAlign from "@tiptap/extension-text-align";
-import { TextStyle } from "@tiptap/extension-text-style";
-import Color from "@tiptap/extension-color";
-import Highlight from "@tiptap/extension-highlight";
-import {
-  Table,
-  TableRow,
-  TableCell,
-  TableHeader,
-} from "@tiptap/extension-table";
-import { ImageAsset, PoetryVerse, Citation, Callout } from "./literary-nodes";
+import { editorialExtensions } from "./extensions";
 import { SourceFields } from "./source-fields";
 import type { EditorialSource } from "@/lib/editor/sources";
 import { richText } from "@/lib/editor/text";
-import { Node, Extension, mergeAttributes } from "@tiptap/core";
 import type { JSONContent } from "@tiptap/core";
-import { cleanEditorDocument, editorVideo } from "@/lib/editor/client-document";
+import { cleanEditorDocument } from "@/lib/editor/client-document";
 import {
   browserDraftKey,
   parseBrowserDraft,
@@ -58,64 +46,6 @@ export type PostRecord = {
   [key: string]: unknown;
 };
 type Choice = { id: string; name?: string; display_name?: string };
-const Direction = Extension.create({
-  name: "direction",
-  addGlobalAttributes() {
-    return [
-      {
-        types: [
-          "paragraph",
-          "heading",
-          "blockquote",
-          "poetry",
-          "callout",
-          "footnote",
-        ],
-        attributes: {
-          dir: {
-            default: "rtl",
-            parseHTML: (e) => e.getAttribute("dir"),
-            renderHTML: (a) => ({ dir: a.dir }),
-          },
-        },
-      },
-    ];
-  },
-});
-function block(name: string) {
-  return Node.create({
-    name,
-    group: "block",
-    content: "block+",
-    parseHTML() {
-      return [{ tag: `aside.editor-${name}` }];
-    },
-    renderHTML({ HTMLAttributes }) {
-      return [
-        "aside",
-        mergeAttributes(HTMLAttributes, { class: `editor-${name}` }),
-        0,
-      ];
-    },
-  });
-}
-const Video = Node.create({
-  name: "video",
-  group: "block",
-  atom: true,
-  addAttributes() {
-    return { src: { default: "" } };
-  },
-  parseHTML() {
-    return [{ tag: "iframe" }];
-  },
-  renderHTML({ node }) {
-    const src = editorVideo(node.attrs.src);
-    return src
-      ? ["iframe", { src, title: "فيديو", loading: "lazy" }]
-      : ["span", { class: "invalid-editor-media" }, "فيديو غير متاح"];
-  },
-});
 import { command } from "./command";
 const labels: Record<string, string> = {
   draft: "مسودة",
@@ -276,25 +206,7 @@ export default function Studio({
       setWords(text.trim().split(/\s+/).filter(Boolean).length);
       setChars(text.length);
     },
-    extensions: [
-      StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] } }),
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
-      TextStyle,
-      Color,
-      Highlight.configure({ multicolor: true }),
-      Table.configure({ resizable: true }),
-      TableRow,
-      TableCell,
-      TableHeader,
-      ImageAsset,
-      Direction,
-      Callout,
-      PoetryVerse,
-      Citation,
-      block("poetry"),
-      block("footnote"),
-      Video,
-    ],
+    extensions: editorialExtensions(),
     content: safeInitial,
     onUpdate: ({ editor }) => {
       docRef.current = editor.getJSON();
@@ -685,7 +597,12 @@ export default function Studio({
             {!online && dirty
               ? "انقطع الاتصال؛ النسخة المحلية تنتظر عودته"
               : status}{" "}
-            · {labels[record.status] || record.status}
+            ·{" "}
+            {record.status === "review" &&
+            !dirty &&
+            record.approved_version === record.version
+              ? "معتمد تحريرياً"
+              : labels[record.status] || record.status}
           </span>
           <button
             onClick={() => void save(true)}
@@ -1190,6 +1107,20 @@ export default function Studio({
           </button>
           {publisher && (
             <>
+              {record.status === "review" && (
+                <button
+                  disabled={
+                    transitionBusy ||
+                    saving ||
+                    conflict ||
+                    !online ||
+                    (!dirty && record.approved_version === record.version)
+                  }
+                  onClick={() => void transition("approve")}
+                >
+                  اعتماد النسخة الحالية
+                </button>
+              )}
               <button
                 disabled={transitionBusy || saving || conflict || !online}
                 onClick={() => void transition("publish")}

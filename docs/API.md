@@ -89,3 +89,7 @@ The existing category and author command contracts accept optional `patch.color`
 - `POST /auth/password` accepts matching `password`/`confirmation` with 12–128 characters, verifies the current Auth user, clears the PIN proof, and reports password persistence separately from global sign-out.
 
 Write requests require the configured Origin. Administrative responses are private/no-store. No token, password or PIN is included in the contracts or logs. See `public/openapi.json` version 1.4.0.
+
+## متابعة الاعتماد والصفحات — 2026-10-21
+
+OpenAPI 1.5.0 يضيف POST /api/v1/admin/pages بعقد {id?, version?, patch:{slug,title,description,content_json,is_published}}. settings.update وPIN للمالك مطلوبان، slug ثابت بعد الإنشاء. action=approve في /admin/transitions قرار على نسخة review الحالية، وstatus=approved فلتر مشتق في /admin/data?resource=posts. مسارات القراءة: /pages/[slug]، و/about و/privacy للبدائل المنشورة، مع بقاء المحتوى الأصلي عند عدم وجود بديل منشور.

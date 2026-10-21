@@ -159,3 +159,83 @@ it("validates category colors and author specialties before forwarding metadata 
   );
   expect(tooLong.status).toBe(400);
 });
+it("routes approval through the existing transition and preserves review errors", async () => {
+  state.signedIn = true;
+  const body = {
+    id: "11111111-1111-4111-8111-111111111111",
+    version: 2,
+    action: "approve",
+  };
+  expect(
+    (
+      await POST(req(body), {
+        params: Promise.resolve({ resource: "transitions" }),
+      })
+    ).status,
+  ).toBe(200);
+  expect(state.rpc).toHaveBeenCalledWith(
+    "cms_transition_post",
+    expect.objectContaining({ p_action: "approve", p_expected_version: 2 }),
+  );
+  state.rpc.mockResolvedValue({
+    data: null,
+    error: { message: "APPROVAL_REQUIRES_REVIEW internal details" },
+  });
+  const rejected = await POST(req(body), {
+    params: Promise.resolve({ resource: "transitions" }),
+  });
+  expect(await rejected.json()).toEqual({
+    error: { code: "APPROVAL_REQUIRES_REVIEW" },
+  });
+});
+it("static page writes reject unknown fields and invalid document nodes", async () => {
+  state.signedIn = true;
+  const patch = {
+    title: "صفحة",
+    slug: "about",
+    description: "",
+    is_published: false,
+    content_json: { type: "doc", content: [{ type: "paragraph" }] },
+  };
+  expect(
+    (
+      await POST(req({ patch: { ...patch, updated_by: "someone" } }), {
+        params: Promise.resolve({ resource: "pages" }),
+      })
+    ).status,
+  ).toBe(400);
+  expect(
+    (
+      await POST(
+        req({ patch: { ...patch, content_json: { type: "script" } } }),
+        { params: Promise.resolve({ resource: "pages" }) },
+      )
+    ).status,
+  ).toBe(400);
+  expect(
+    (
+      await POST(req({ patch }), {
+        params: Promise.resolve({ resource: "pages" }),
+      })
+    ).status,
+  ).toBe(200);
+  expect(state.rpc).toHaveBeenCalledWith(
+    "cms_save_page",
+    expect.objectContaining({ p_id: null, p_patch: patch }),
+  );
+});
+it("never silently discards catalog metadata when the schema is not migrated", async () => {
+  state.signedIn = true;
+  state.rpc.mockResolvedValue({
+    data: null,
+    error: { message: "UNKNOWN_FIELD" },
+  });
+  const response = await POST(
+    req({ patch: { name: "قسم", slug: "category", color: "#267E81" } }),
+    { params: Promise.resolve({ resource: "categories" }) },
+  );
+  expect(response.status).toBe(503);
+  expect(await response.json()).toEqual({
+    error: { code: "SCHEMA_UPDATE_REQUIRED" },
+  });
+});

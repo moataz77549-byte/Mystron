@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { siteUrl, databaseConfigured } from "@/lib/env";
 import { publicDatabase } from "@/lib/supabase";
+import { sitePagePath } from "@/lib/editorial/site-pages-schema";
 import { categories, posts } from "@/lib/content";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = ["/", "/about", "/privacy"].map((path) => ({
@@ -31,7 +32,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .eq("is_active", true)
     .is("deleted_at", null)
     .throwOnError();
+  const pages = await publicDatabase()
+    .from("site_pages")
+    .select("slug,updated_at")
+    .eq("is_published", true);
+  if (pages.error && !["42P01", "PGRST205"].includes(pages.error.code))
+    throw new Error("تعذر تحميل خريطة الصفحات");
   return [
+    ...(pages.data || [])
+      .filter((p) => !["about", "privacy"].includes(p.slug))
+      .map((p) => ({
+        url: new URL(sitePagePath(p.slug), siteUrl()).href,
+        lastModified: p.updated_at,
+      })),
     ...writers.data.map((a) => ({
       url: new URL("/authors/" + a.slug, siteUrl()).href,
     })),

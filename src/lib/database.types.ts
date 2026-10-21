@@ -14,6 +14,42 @@ export type Database = {
   };
   public: {
     Tables: {
+      site_pages: {
+        Row: {
+          id: string;
+          slug: string;
+          title: string;
+          description: string;
+          content_json: Json;
+          is_published: boolean;
+          version: number;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          title: string;
+          description?: string;
+          content_json: Json;
+          is_published?: boolean;
+          version?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          slug?: string;
+          title?: string;
+          description?: string;
+          content_json?: Json;
+          is_published?: boolean;
+          version?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       audit_logs: {
         Row: {
           action: string;
@@ -514,6 +550,9 @@ export type Database = {
           sharing: Json;
           slug: string;
           sources: Json;
+          approved_version: number | null;
+          approved_at: string | null;
+          approved_by: string | null;
           status: string;
           subtitle: string | null;
           tags: string[];
@@ -555,6 +594,9 @@ export type Database = {
           sharing?: Json;
           slug: string;
           sources?: Json;
+          approved_version?: number | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
           status?: string;
           subtitle?: string | null;
           tags?: string[];
@@ -596,6 +638,9 @@ export type Database = {
           sharing?: Json;
           slug?: string;
           sources?: Json;
+          approved_version?: number | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
           status?: string;
           subtitle?: string | null;
           tags?: string[];
@@ -850,6 +895,14 @@ export type Database = {
       cms_moderate_comment: {
         Args: { p_action: string; p_id: string };
         Returns: undefined;
+      };
+      cms_save_page: {
+        Args: {
+          p_id: string | null;
+          p_patch: Json;
+          p_expected_version?: number | null;
+        };
+        Returns: Database["public"]["Tables"]["site_pages"]["Row"];
       };
       cms_move_category_posts: {
         Args: { p_from: string; p_to: string };

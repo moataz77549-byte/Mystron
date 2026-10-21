@@ -33,6 +33,13 @@ beforeAll(async () => {
 afterAll(async () => {
   await db.close();
 });
+it("executes the release SQL acceptance suite with rollback", async () => {
+  const acceptance = readFileSync(
+    "scripts/sql/release-acceptance.sql",
+    "utf8",
+  ).replace(/^\\set.*$/gm, "");
+  await db.exec("begin;reset role;" + acceptance);
+});
 describe("PostgreSQL migration and RLS", () => {
   it("Storage migration is idempotent and excludes executable types", async () => {
     const file = readdirSync("supabase/migrations").find((x) =>

@@ -18,7 +18,7 @@
     "test:python": "PYTHONPATH=services/telegram-bot python -m unittest discover -s services/telegram-bot/tests -v",
     "lint:python": "python -m ruff check services/telegram-bot && python -m ruff format --check services/telegram-bot",
     "release:check": "node scripts/release-preflight.mjs",
-    "test:release": "node --test scripts/release-preflight.test.mjs"
+    "test:release": "node --test scripts/release-preflight.test.mjs scripts/db-release.test.mjs scripts/neon-test-harness.test.mjs"
   },
   "repository": {
     "type": "git",

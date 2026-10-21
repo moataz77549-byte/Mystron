@@ -1,8 +1,21 @@
-export const metadata = {
-  title: "سياسة الخصوصية",
-  alternates: { canonical: "/privacy" },
-};
-export default function Privacy() {
+import { publishedPage } from "@/lib/editorial/site-pages";
+import { SitePageContent } from "@/components/site-page";
+export async function generateMetadata() {
+  const page = await publishedPage("privacy");
+  return {
+    title: page?.title || "سياسة الخصوصية",
+    description: page?.description,
+    alternates: { canonical: "/privacy" },
+    openGraph: {
+      title: page?.title || "سياسة الخصوصية",
+      description: page?.description,
+      url: "/privacy",
+    },
+  };
+}
+export default async function Privacy() {
+  const page = await publishedPage("privacy");
+  if (page) return <SitePageContent page={page} />;
   return (
     <article className="prose">
       <h1>سياسة الخصوصية</h1>
