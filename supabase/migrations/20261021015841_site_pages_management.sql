@@ -14,6 +14,9 @@ create index site_pages_updated_idx on public.site_pages(updated_at desc,id);
 alter table public.site_pages enable row level security;
 create policy published_pages on public.site_pages for select to anon,authenticated using(is_published);
 create policy admin_pages on public.site_pages for select to authenticated using((select private.has_permission('settings.read')));
+-- Supabase's default privileges may grant table-wide SELECT on creation.
+-- Remove inherited grants before exposing the explicit safe column list.
+revoke all on public.site_pages from anon,authenticated;
 grant select(id,slug,title,description,content_json,is_published,version,updated_at) on public.site_pages to anon,authenticated;
 revoke insert,update,delete on public.site_pages from anon,authenticated;
 create or replace function public.cms_save_page(p_id uuid,p_patch jsonb,p_expected_version bigint default null) returns public.site_pages language plpgsql security definer set search_path='' as $$

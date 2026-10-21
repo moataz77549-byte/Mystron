@@ -5,6 +5,7 @@ do $$ begin
  if has_function_privilege('anon','public.cms_save_page(uuid,jsonb,bigint)','execute') then raise exception 'Anonymous page write exposed';end if;
  if has_function_privilege('anon','public.cms_merge_tag(text,text,integer)','execute') then raise exception 'Anonymous tag write exposed';end if;
  if has_table_privilege('authenticated','public.site_pages','insert') then raise exception 'Direct page write exposed';end if;
+ if has_column_privilege('anon','public.site_pages','updated_by','select') then raise exception 'Page administrative identity exposed';end if;
 end $$;
 insert into auth.users(id,email,email_confirmed_at) values('a0000000-0000-4000-8000-000000000001','release-local@example.test',now());
 insert into auth.sessions(id,user_id,aal,created_at,updated_at) values('a0000000-0000-4000-8000-000000000002','a0000000-0000-4000-8000-000000000001','aal1',now(),now());
