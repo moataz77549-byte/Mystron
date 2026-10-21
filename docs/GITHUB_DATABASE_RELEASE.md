@@ -52,12 +52,12 @@ workflow-only PR, then dispatch the existing work branch revision.
 ## Execution and safety gates
 
 `docker-acceptance` runs without production secrets on `ubuntu-latest`. It starts the
-real Supabase stack on a Docker **internal network**, applies the existing 49 files,
+real Supabase stack on a dedicated Docker bridge with outbound connections blocked by an explicit firewall rule, applies the existing 49 files,
 asserts their ledger identities, then applies exactly six pending files. A transactional
 SQL suite exercises real Postgres roles/RLS, session enforcement, author/category
 metadata, post saves and stale-version rejection, tag merging, review/approval,
 publishing, unpublishing, scheduling/cancellation, and versioned static pages.
-Test rows are rolled back. These SQL tests do not constitute hosted browser acceptance.
+Test rows are rolled back. The same job then builds Next.js with local-only credentials and runs Chromium against real local Auth, Storage and PostgreSQL: login, session listing, catalog forms, editor save/reload/publish, tags/reports access, static page saves, origin/access denial, and five screen widths. These are isolated tests and do not constitute hosted production acceptance.
 
 The protected backup job links CLI 2.120.0 to the fixed project using environment
 secrets, reads the 49-entry ledger, and verifies all public tables retain RLS. It
@@ -81,7 +81,7 @@ The job downloads the durable encrypted copy, checks chunk/manifest hashes, decr
 and restores it into a fresh isolated local stack using `ON_ERROR_STOP` and a single
 transaction. It verifies original row fingerprints, restores Storage bytes through
 the local Storage API, downloads them again, and compares SHA-256 hashes. Local cron
-execution is disabled before import; the internal network prevents restored jobs
+execution is disabled before import; the outbound firewall prevents restored jobs
 from calling production. A managed Auth/Storage schema version mismatch causes a stop;
 the workflow does not omit incompatible COPY blocks to conceal lost data.
 

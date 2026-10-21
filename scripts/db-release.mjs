@@ -41,6 +41,21 @@ const local = join(scratch, "local");
 const backup = join(scratch, "backup");
 const container = "supabase_db_MaystroonRelease";
 const network = "maystroon-release-isolated";
+const subnet = "172.29.0.0/24";
+const firewall = [
+  "DOCKER-USER",
+  "-s",
+  subnet,
+  "!",
+  "-d",
+  subnet,
+  "-m",
+  "conntrack",
+  "--ctstate",
+  "NEW",
+  "-j",
+  "REJECT",
+];
 const ident = (s) => '"' + s.replaceAll('"', '""') + '"';
 const literal = (s) => "'" + s.replaceAll("'", "''") + "'";
 const digest = (s) => createHash("sha256").update(s).digest("hex");
@@ -487,7 +502,18 @@ async function prepareLocal(empty = false) {
         join(root, "supabase/migrations", f),
         join(local, "supabase/migrations", f),
       );
-  run("docker", ["network", "create", "--internal", network]);
+  // Docker's internal gateway mode does not expose the host ports that CLI's
+  // health checks require. A dedicated bridge plus a fail-closed egress rule
+  // preserves localhost health/API access while blocking new outbound flows.
+  run("docker", [
+    "network",
+    "create",
+    "--subnet",
+    subnet,
+    "--ipv6=false",
+    network,
+  ]);
+  run("sudo", ["iptables", "-I", ...firewall]);
   supa(
     "start",
     "--workdir",
@@ -496,6 +522,21 @@ async function prepareLocal(empty = false) {
     network,
     "--exclude",
     "studio,imgproxy,edge-runtime,logflare,vector,supavisor",
+  );
+  const escape = spawnSync(
+    "docker",
+    [
+      "exec",
+      container,
+      "bash",
+      "-c",
+      "timeout 3 bash -c 'exec 3<>/dev/tcp/1.1.1.1/443'",
+    ],
+    { stdio: "ignore" },
+  );
+  assert(
+    escape.status !== 0 && escape.status !== null,
+    "Docker egress isolation failed",
   );
   // Restored cron payloads must never execute, even without external network access.
   run("docker", [
@@ -774,6 +815,7 @@ async function main() {
       stdio: "ignore",
     });
     spawnSync("docker", ["network", "rm", network], { stdio: "ignore" });
+    spawnSync("sudo", ["iptables", "-D", ...firewall], { stdio: "ignore" });
     await rm(scratch, { recursive: true, force: true });
     await rm(join(root, "supabase/.temp"), { recursive: true, force: true });
   } else throw Error("Unknown release mode");
