@@ -7,7 +7,7 @@ do $$ begin
  if has_table_privilege('authenticated','public.site_pages','insert') then raise exception 'Direct page write exposed';end if;
 end $$;
 insert into auth.users(id,email,email_confirmed_at) values('a0000000-0000-4000-8000-000000000001','release-local@example.test',now());
-insert into auth.sessions(id,user_id,aal) values('a0000000-0000-4000-8000-000000000002','a0000000-0000-4000-8000-000000000001','aal1');
+insert into auth.sessions(id,user_id,aal,created_at,updated_at) values('a0000000-0000-4000-8000-000000000002','a0000000-0000-4000-8000-000000000001','aal1',now(),now());
 insert into public.admin_memberships(user_id) values('a0000000-0000-4000-8000-000000000001');
 insert into public.user_permissions(user_id,permission_key,effect,scope)
 select 'a0000000-0000-4000-8000-000000000001',key,'allow','all' from public.permissions

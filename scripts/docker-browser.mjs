@@ -4,6 +4,45 @@ import { randomBytes } from "node:crypto";
 import { chromium, expect } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 
+export async function seedLocalBackup(status) {
+  if (new URL(status.API_URL).hostname !== "127.0.0.1")
+    throw Error("Local API required");
+  const email = "backup-local@example.test",
+    password = randomBytes(24).toString("base64url");
+  const admin = createClient(status.API_URL, status.SERVICE_ROLE_KEY, {
+    auth: { persistSession: false },
+  });
+  const user = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  if (user.error) throw Error("Local backup Auth seed failed");
+  const png = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6T1sAAAAASUVORK5CYII=",
+    "base64",
+  );
+  if (
+    (
+      await admin.storage
+        .from("editorial")
+        .upload("backup-local.png", png, { contentType: "image/png" })
+    ).error
+  )
+    throw Error("Local backup Storage seed failed");
+  return { email, password };
+}
+export async function verifyLocalBackupLogin(status, credentials) {
+  if (new URL(status.API_URL).hostname !== "127.0.0.1")
+    throw Error("Local API required");
+  const auth = createClient(status.API_URL, status.ANON_KEY, {
+    auth: { persistSession: false },
+  });
+  if ((await auth.auth.signInWithPassword(credentials)).error)
+    throw Error("Restored local Auth password verification failed");
+  await auth.auth.signOut();
+}
+
 export async function dockerBrowser(status, grantUser) {
   if (new URL(status.API_URL).hostname !== "127.0.0.1")
     throw Error("Local API required");

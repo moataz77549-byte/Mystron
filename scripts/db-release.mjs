@@ -240,9 +240,11 @@ const objectPath = (bucket, name) =>
   encodeURIComponent(bucket) +
   "/" +
   name.split("/").map(encodeURIComponent).join("/");
-async function inventoryStorage(directory) {
-  const url = `https://${PROJECT}.supabase.co`,
-    key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+async function inventoryStorage(
+  directory,
+  url = `https://${PROJECT}.supabase.co`,
+  key = process.env.SUPABASE_SERVICE_ROLE_KEY,
+) {
   const buckets = (await (await storage(url, key, "bucket")).json()).filter(
     (b) => b.id !== BUCKET,
   );
@@ -677,29 +679,15 @@ async function baseline() {
     "Public table without RLS",
   );
 }
-async function backupAndTest() {
-  for (const key of [
-    "SUPABASE_ACCESS_TOKEN",
-    "SUPABASE_DB_PASSWORD",
-    "SUPABASE_SERVICE_ROLE_KEY",
-    "BACKUP_ENCRYPTION_KEY",
-  ])
-    assert(process.env[key], `Missing protected secret: ${key}`);
-  encryptionKey();
-  supa("link", "--project-ref", PROJECT);
-  await baseline();
-  assert(
-    (await remoteQuery("select count(*)::int n from vault.secrets"))[0].n === 0,
-    "Vault contains secrets: an additional verified Vault-key backup/restore procedure is required",
-  );
-  await mkdir(join(backup, "objects"), { recursive: true, mode: 0o700 });
-  const before = await snapshot(remoteQuery);
+async function captureDatabase(query, target) {
+  await mkdir(backup, { recursive: true, mode: 0o700 });
+  const before = await snapshot(query);
   for (const [name, args] of [
     ["roles.sql", ["--role-only"]],
     ["schema.sql", []],
     ["data.sql", ["--data-only", "--use-copy"]],
   ]) {
-    supa("db", "dump", "--linked", "--file", join(backup, name), ...args);
+    supa("db", "dump", ...target, "--file", join(backup, name), ...args);
     assert((await stat(join(backup, name))).size > 0, "Empty database dump");
   }
   // CLI filters the ledger schema by default; back it up explicitly if absent.
@@ -714,7 +702,7 @@ async function backupAndTest() {
     supa(
       "db",
       "dump",
-      "--linked",
+      ...target,
       "--schema",
       "cron",
       "--data-only",
@@ -734,13 +722,74 @@ async function backupAndTest() {
       supa(
         "db",
         "dump",
-        "--linked",
+        ...target,
         "--schema",
         "supabase_migrations",
         "--file",
         join(backup, name),
         ...args,
       );
+  return { before, extraLedger, extraCron };
+}
+async function restoreDatabase(manifest) {
+  const names = [
+    "roles.sql",
+    "schema.sql",
+    ...(manifest.extraLedger ? ["ledger-schema.sql"] : []),
+    "data.sql",
+    ...(manifest.extraLedger ? ["ledger-data.sql"] : []),
+    ...(manifest.extraCron ? ["cron-data.sql"] : []),
+  ];
+  let sql = "DROP SCHEMA IF EXISTS supabase_migrations CASCADE;\n";
+  for (const name of names) {
+    // Match the platform application owner so subsequent CLI migrations retain
+    // their normal postgres ownership rights. Maintenance-only data import uses
+    // the local superuser, never a changed production role.
+    if (name === "schema.sql") sql += "SET ROLE postgres;\n";
+    if (name === "data.sql")
+      sql += "RESET ROLE; SET session_replication_role = replica;\n";
+    sql += (await readFile(join(backup, name), "utf8")) + "\n";
+  }
+  run(
+    "docker",
+    [
+      "exec",
+      "-i",
+      container,
+      "psql",
+      "-X",
+      "-U",
+      "supabase_admin",
+      "-d",
+      "postgres",
+      "-v",
+      "ON_ERROR_STOP=1",
+      "--single-transaction",
+    ],
+    { input: sql },
+  );
+  compareSnapshot(manifest.before, await snapshot(localQuery, manifest.before));
+}
+async function backupAndTest() {
+  for (const key of [
+    "SUPABASE_ACCESS_TOKEN",
+    "SUPABASE_DB_PASSWORD",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "BACKUP_ENCRYPTION_KEY",
+  ])
+    assert(process.env[key], `Missing protected secret: ${key}`);
+  encryptionKey();
+  supa("link", "--project-ref", PROJECT);
+  await baseline();
+  assert(
+    (await remoteQuery("select count(*)::int n from vault.secrets"))[0].n === 0,
+    "Vault contains secrets: an additional verified Vault-key backup/restore procedure is required",
+  );
+  await mkdir(join(backup, "objects"), { recursive: true, mode: 0o700 });
+  const { before, extraLedger, extraCron } = await captureDatabase(
+    remoteQuery,
+    ["--linked"],
+  );
   const storageManifest = await inventoryStorage(join(backup, "objects"));
   const metadataCount = (
     await remoteQuery(
@@ -765,38 +814,7 @@ async function backupAndTest() {
   const manifest = JSON.parse(
     await readFile(join(backup, "manifest.json"), "utf8"),
   );
-  const names = [
-    "roles.sql",
-    "schema.sql",
-    ...(manifest.extraLedger ? ["ledger-schema.sql"] : []),
-    "data.sql",
-    ...(manifest.extraLedger ? ["ledger-data.sql"] : []),
-    ...(manifest.extraCron ? ["cron-data.sql"] : []),
-  ];
-  let sql = "DROP SCHEMA IF EXISTS supabase_migrations CASCADE;\n";
-  for (const name of names) {
-    if (name === "data.sql") sql += "SET session_replication_role = replica;\n";
-    sql += (await readFile(join(backup, name), "utf8")) + "\n";
-  }
-  run(
-    "docker",
-    [
-      "exec",
-      "-i",
-      container,
-      "psql",
-      "-X",
-      "-U",
-      "supabase_admin",
-      "-d",
-      "postgres",
-      "-v",
-      "ON_ERROR_STOP=1",
-      "--single-transaction",
-    ],
-    { input: sql },
-  );
-  compareSnapshot(manifest.before, await snapshot(localQuery, manifest.before));
+  await restoreDatabase(manifest);
   await restoreStorage(manifest.storage);
   await localAcceptance();
   checkDryRun(dryRun("--linked"));
@@ -843,6 +861,47 @@ async function main() {
   if (mode === "approval") return approval(process.argv[3]);
   if (mode === "local") {
     await prepareLocal();
+    console.log(
+      "Rehearsing database backup/restore on the disposable local baseline.",
+    );
+    const status = JSON.parse(supa("status", "--workdir", local, "-o", "json"));
+    const { seedLocalBackup, verifyLocalBackupLogin } =
+      await import("./docker-browser.mjs");
+    const credentials = await seedLocalBackup(status);
+    await mkdir(join(backup, "objects"), { recursive: true, mode: 0o700 });
+    const storageManifest = await inventoryStorage(
+      join(backup, "objects"),
+      status.API_URL,
+      status.SERVICE_ROLE_KEY,
+    );
+    const captured = await captureDatabase(localQuery, [
+      "--local",
+      "--workdir",
+      local,
+      "--network-id",
+      network,
+    ]);
+    await rm(join(local, "supabase/migrations"), {
+      recursive: true,
+      force: true,
+    });
+    await mkdir(join(local, "supabase/migrations"));
+    supa(
+      "db",
+      "reset",
+      "--local",
+      "--no-seed",
+      "--workdir",
+      local,
+      "--network-id",
+      network,
+    );
+    await restoreDatabase(captured);
+    await restoreStorage(storageManifest);
+    await verifyLocalBackupLogin(status, credentials);
+    console.log(
+      "Disposable baseline backup restore and row fingerprints verified.",
+    );
     await localAcceptance();
     console.log("Real Supabase Docker: 49 → 55 and SQL acceptance passed.");
   } else if (mode === "preflight") await backupAndTest();
