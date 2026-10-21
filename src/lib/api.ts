@@ -21,7 +21,8 @@ export async function publicApi(
     const ip =
       request.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ||
       "local";
-    if (!(await rateLimit("public:" + ip))) return failure("RATE_LIMITED", 429);
+    if (!(await rateLimit("public:" + ip)))
+      return failure("RATE_LIMITED", 429, { "Retry-After": "60" });
     return NextResponse.json(await handler(), {
       headers: { "Cache-Control": "no-store" },
     });
