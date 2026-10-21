@@ -15,16 +15,20 @@ For **both** environments, enable **Required reviewers**, select the authorized 
 disable administrator bypass, and restrict deployments to the work branch. If the
 owner is the only reviewer, do not prohibit self review. Environment names alone do
 not provide protection: the script checks the run's recorded review history and
-refuses to proceed without a human approval.
+refuses to proceed without an approval recorded for that environment by owner
+`moataz77549-byte`. A backup approval does not authorize the production job.
 
-Add the following **environment secrets to both environments** with identical values:
+Add the following **environment secrets to both environments** with identical values.
+`SUPABASE_SERVICE_ROLE_KEY` is accepted only as a compatibility fallback when
+`SUPABASE_STORAGE_KEY` is absent; do not configure both for a new setup, and never
+reuse the legacy key previously disclosed in chat:
 
-| Secret                      | Value entered privately in GitHub                                                |
-| --------------------------- | -------------------------------------------------------------------------------- |
-| `SUPABASE_ACCESS_TOKEN`     | Supabase personal access token authorized for the existing project               |
-| `SUPABASE_DB_PASSWORD`      | Current database password; no password reset is required                         |
-| `SUPABASE_SERVICE_ROLE_KEY` | Existing project's server-only service role key, used for private Storage backup |
-| `BACKUP_ENCRYPTION_KEY`     | Base64 representation of 32 cryptographically random bytes                       |
+| Secret                  | Value entered privately in GitHub                                                                                |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `SUPABASE_ACCESS_TOKEN` | Supabase personal access token authorized for the existing project                                               |
+| `SUPABASE_DB_PASSWORD`  | Current database password; no password reset is required                                                         |
+| `SUPABASE_STORAGE_KEY`  | A new server-only `sb_secret_…` key for Storage inventory, object downloads and encrypted backup upload/download |
+| `BACKUP_ENCRYPTION_KEY` | Base64 representation of 32 cryptographically random bytes                                                       |
 
 Generate the encryption key locally, for example with `openssl rand -base64 32`.
 Keep a second offline copy in the owner's password manager. Never paste credentials
@@ -48,6 +52,61 @@ early solely to expose that button. The branch push/re-run path avoids that boot
 If GitHub does not reevaluate a previously skipped job's variable in a re-run, do not
 weaken the gate: register this workflow alone on main through a separately reviewed
 workflow-only PR, then dispatch the existing work branch revision.
+
+## Where to enter and obtain secrets
+
+Open the repository's [environment settings](https://github.com/moataz77549-byte/Mystron/settings/environments)
+while signed in as `moataz77549-byte`. Create/select `maystroon-db-backup`, then
+**Environment secrets → Add environment secret**. Repeat for `maystroon-db-production`.
+The workflow declares these two environment names, but that does not configure
+Required reviewers or prove that either environment has secrets. Repository admin
+access is needed to configure the protections. The connected GitHub app lacks that
+administration capability; the currently available browser session is another account.
+
+| Secret                  | Source and actual use                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SUPABASE_ACCESS_TOKEN` | [Supabase account tokens](https://supabase.com/dashboard/account/tokens). Prefer a short-lived project-scoped token for `ttvasynaxkkcwrmvlorg`, with permissions for CLI link/project metadata and read-only database queries. Used by the CLI Management API and SELECT-only catalog/fingerprint reads. Database push permissions still come from the database login.                                                                                                                                                       |
+| `SUPABASE_DB_PASSWORD`  | Existing `postgres` database password entered when the project was created, ideally retrieved from the owner's password manager. It is **not** the Supabase account password. [Database settings](https://supabase.com/dashboard/project/ttvasynaxkkcwrmvlorg/database/settings) can reset it if it is lost, but this release does not reset it automatically; first inventory external direct database clients. Enter the raw password, without URI encoding, in this secret. Used for PostgreSQL CLI dump/connection/push. |
+| `BACKUP_ENCRYPTION_KEY` | Generated on the owner's trusted machine using `openssl rand -base64 32`, then entered directly in both environments. It is not obtainable from Supabase. Keep an offline/password-manager copy so the encrypted archive remains recoverable. Do not generate it in a workflow log.                                                                                                                                                                                                                                          |
+| `SUPABASE_STORAGE_KEY`  | A separate backend secret key from [Project API Keys](https://supabase.com/dashboard/project/ttvasynaxkkcwrmvlorg/settings/api-keys), preferably `sb_secret_…`. Used only for the Storage HTTP API: original object bytes and durable encrypted archive transport. The backup job needs it even when original Storage is empty because the encrypted database archive is stored in the project's private backup bucket. It is **not** a PostgreSQL credential.                                                               |
+
+The Storage helper sends opaque `sb_secret_` keys only in the `apikey` header;
+local/legacy JWT keys retain Bearer authorization. The public publishable key cannot
+perform this backup. No secret is accepted through a workflow_dispatch input, echoed,
+written into source, or uploaded as an artifact.
+
+### Previously disclosed legacy key: verification remains pending
+
+Do not mark rotation complete based on a variable's name or update timestamp.
+The existing Next.js `privilegedDatabase()` passes the server-only
+`SUPABASE_SERVICE_ROLE_KEY` value to the official Supabase SDK, so this legacy
+**variable name** can hold a new `sb_secret_…` value without changing public clients.
+For a new setup, use separate secret keys for the web backend and release Storage.
+
+1. Create replacement backend keys privately in the Supabase dashboard.
+2. Replace the web backend value in the official Vercel project `mystron`, preserving
+   its server-only name/type and correct environment scope; update any other actual
+   consumers and both release environments. Redeploy consumers before retirement.
+3. Check `/api/v1/health`, server rate limiting/PIN operations, Storage, and integration
+   operations. The Telegram Python gateway in this repository has no direct Supabase
+   key dependency; its web API backend is still a consumer. Check external consumers
+   and Supabase last-used indicators as well.
+4. Only after successful checks, deactivate the legacy API keys in Supabase, then
+   verify that the disclosed key no longer authenticates and the replacement services
+   still work. Do not log the old key or run destructive tests. Merely changing Auth
+   signing keys is not proof that a legacy service API key is retired.
+
+As of 2026-10-22, the connector can inspect Vercel variable metadata but does not
+reveal sensitive values. `SUPABASE_SERVICE_ROLE_KEY` is present for production and
+its last recorded update precedes this disclosure. This does **not** prove rotation
+or revocation; both remain **UNVERIFIED**. No credential was reset or disabled by
+this release preparation. Supabase MCP has no API-key rotation operation, and the
+browser does not currently have the required owner session.
+
+Sources: [Supabase API keys and leaked-key rotation](https://supabase.com/docs/guides/getting-started/api-keys#leaked-key),
+[personal access tokens](https://supabase.com/docs/guides/platform/personal-access-tokens),
+[database passwords](https://supabase.com/docs/guides/database/postgres/roles#changing-your-project-password),
+[GitHub environment protections](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments).
 
 ## Execution and safety gates
 

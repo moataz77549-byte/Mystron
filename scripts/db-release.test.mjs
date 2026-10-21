@@ -11,7 +11,54 @@ import {
   compareSnapshot,
   encryptFile,
   decryptFile,
+  storageKey,
+  storageHeaders,
+  hasOwnerApproval,
 } from "./db-release.mjs";
+
+test("Storage supports independently rotatable secret keys without treating them as JWTs", () => {
+  assert.throws(() => storageKey({}));
+  assert.equal(
+    storageKey({
+      SUPABASE_STORAGE_KEY: "sb_secret_fixture",
+      SUPABASE_SERVICE_ROLE_KEY: "legacy.fixture",
+    }),
+    "sb_secret_fixture",
+  );
+  assert.equal(
+    storageKey({ SUPABASE_SERVICE_ROLE_KEY: "legacy.fixture" }),
+    "legacy.fixture",
+  );
+  assert.deepEqual(storageHeaders("sb_secret_fixture"), {
+    apikey: "sb_secret_fixture",
+  });
+  assert.deepEqual(storageHeaders("local.jwt.fixture"), {
+    apikey: "local.jwt.fixture",
+    Authorization: "Bearer local.jwt.fixture",
+  });
+});
+
+test("production needs recorded owner approval for its own environment", () => {
+  const review = {
+    state: "approved",
+    user: { login: "moataz77549-byte" },
+    environments: [{ name: "maystroon-db-backup" }],
+  };
+  assert.equal(hasOwnerApproval([], "maystroon-db-production"), false);
+  assert.equal(hasOwnerApproval([review], "maystroon-db-backup"), true);
+  assert.equal(hasOwnerApproval([review], "maystroon-db-production"), false);
+  assert.equal(
+    hasOwnerApproval([{ ...review, state: "rejected" }], "maystroon-db-backup"),
+    false,
+  );
+  assert.equal(
+    hasOwnerApproval(
+      [{ ...review, user: { login: "another-reviewer" } }],
+      "maystroon-db-backup",
+    ),
+    false,
+  );
+});
 
 test("ledger and dry-run reject unrelated, reordered, missing or duplicate migrations", async () => {
   const files = (await readdir("supabase/migrations"))

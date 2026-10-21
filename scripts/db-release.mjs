@@ -233,8 +233,23 @@ export function compareSnapshot(before, after, additive = false) {
     assert(canAdd || remaining.length === 0, "Unexpected data change");
   }
 }
+export function storageKey(env = process.env) {
+  const key = env.SUPABASE_STORAGE_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
+  assert(key, "Missing protected Storage secret: SUPABASE_STORAGE_KEY");
+  return key;
+}
+export function storageHeaders(key) {
+  // Hosted sb_secret keys are API keys, not user JWTs. The gateway supplies
+  // the service-role authorization; local/legacy JWTs still need Bearer auth.
+  return key.startsWith("sb_secret_")
+    ? { apikey: key }
+    : { apikey: key, Authorization: `Bearer ${key}` };
+}
 async function storage(url, key, path, options = {}) {
-  return request(`${url}/storage/v1/${path}`, { key, ...options });
+  return request(`${url}/storage/v1/${path}`, {
+    ...options,
+    headers: { ...storageHeaders(key), ...options.headers },
+  });
 }
 const objectPath = (bucket, name) =>
   encodeURIComponent(bucket) +
@@ -243,7 +258,7 @@ const objectPath = (bucket, name) =>
 async function inventoryStorage(
   directory,
   url = `https://${PROJECT}.supabase.co`,
-  key = process.env.SUPABASE_SERVICE_ROLE_KEY,
+  key = storageKey(),
 ) {
   const buckets = (await (await storage(url, key, "bucket")).json()).filter(
     (b) => b.id !== BUCKET,
@@ -336,7 +351,7 @@ async function uploadArchive() {
     encryptionKey(),
   );
   const url = `https://${PROJECT}.supabase.co`,
-    key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    key = storageKey();
   let buckets = await (await storage(url, key, "bucket")).json();
   if (!buckets.some((b) => b.id === BUCKET)) {
     await storage(url, key, "bucket", {
@@ -398,7 +413,7 @@ async function uploadArchive() {
 async function downloadArchive(prefix, attestation) {
   assert(/^\d+-\d+\/[a-f0-9]{40}$/.test(prefix), "Invalid backup identity");
   const url = `https://${PROJECT}.supabase.co`,
-    key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    key = storageKey();
   const bytes = await (
     await storage(
       url,
@@ -437,6 +452,14 @@ async function downloadArchive(prefix, attestation) {
   await mkdir(backup, { recursive: true, mode: 0o700 });
   run("tar", ["-xzf", join(scratch, "download.tgz"), "-C", backup]);
 }
+export function hasOwnerApproval(reviews, environment) {
+  return reviews.some(
+    (review) =>
+      review.state === "approved" &&
+      review.user?.login === "moataz77549-byte" &&
+      review.environments?.some((entry) => entry.name === environment),
+  );
+}
 async function approval(environment) {
   assert(
     process.env.GITHUB_REF === BRANCH &&
@@ -456,12 +479,8 @@ async function approval(environment) {
   );
   const reviews = await response.json();
   assert(
-    reviews.some(
-      (r) =>
-        r.state === "approved" &&
-        r.environments.some((e) => e.name === environment),
-    ),
-    "Manual environment approval is required (an unprotected environment is insufficient)",
+    hasOwnerApproval(reviews, environment),
+    "Manual owner approval is required for this environment (an unprotected environment is insufficient)",
   );
   const github = async (path) =>
     (
@@ -791,10 +810,10 @@ async function backupAndTest() {
   for (const key of [
     "SUPABASE_ACCESS_TOKEN",
     "SUPABASE_DB_PASSWORD",
-    "SUPABASE_SERVICE_ROLE_KEY",
     "BACKUP_ENCRYPTION_KEY",
   ])
     assert(process.env[key], `Missing protected secret: ${key}`);
+  storageKey(); // Only used by Storage, never by PostgreSQL dump or CLI push.
   encryptionKey();
   supa("link", "--project-ref", PROJECT);
   await baseline();
