@@ -12,6 +12,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Article
@@ -28,6 +30,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -97,11 +100,22 @@ private val tabs = listOf(Tab("home", "الرئيسية", Icons.Default.Home), T
             composable("filtered/{label}") { entry -> FeedScreen(vm, entry.arguments?.getString("label").orEmpty(), ::openPost) }
             composable("search") {
                 var query by rememberSaveable { mutableStateOf("") }
+                var local by rememberSaveable { mutableStateOf(false) }
+                val saved by vm.saved.collectAsStateWithLifecycle()
                 LaunchedEffect(Unit) { vm.filter(query = query) }
                 Column {
                     OutlinedTextField(query, { query = it.take(100) }, Modifier.fillMaxWidth().padding(horizontal = 16.dp), label = { Text("ابحث في المقالات") }, singleLine = true,
-                        trailingIcon = { IconButton(onClick = { vm.filter(query = query) }) { Icon(Icons.Default.Search, "تنفيذ البحث") } })
-                    FeedScreen(vm, "نتائج البحث", ::openPost)
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search), keyboardActions = KeyboardActions(onSearch = { if (!local) vm.filter(query = query) }),
+                        trailingIcon = { IconButton(onClick = { if (!local) vm.filter(query = query) }) { Icon(Icons.Default.Search, "تنفيذ البحث") } })
+                    FilterChip(selected = local, onClick = { local = !local }, label = { Text("البحث في المحفوظات دون إنترنت") }, modifier = Modifier.padding(horizontal = 16.dp))
+                    if (!local) FeedScreen(vm, "نتائج البحث", ::openPost)
+                    else {
+                        val results = remember(saved, query) { searchSaved(saved, query) }
+                        LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            if (results.isEmpty()) item { StatusPanel("لا توجد مقالات محفوظة تطابق البحث.") }
+                            items(results, key = Post::id) { post -> PostCard(post) { openPost(post) } }
+                        }
+                    }
                 }
             }
             composable("saved") {
@@ -153,7 +167,13 @@ private val tabs = listOf(Tab("home", "الرئيسية", Icons.Default.Home), T
                 item { Text(PLATFORM_COPYRIGHT) }
                 item { Text("تبقى حقوق المقالات والمصادر والمواد المرخصة لأصحابها، بصورة مستقلة عن حقوق تطوير المنصة.") }
                 item { Text("الإصدار ${BuildConfig.VERSION_NAME}") }
+                item { TextButton(onClick = { nav.navigate("licenses") }) { Text("تراخيص الخطوط") } }
             } }
+            composable("licenses") {
+                val context = LocalContext.current
+                val text = remember { context.resources.openRawResource(R.raw.font_licenses).bufferedReader().use { it.readText() } }
+                LazyColumn(contentPadding = PaddingValues(20.dp)) { item { SelectionContainer { Text(text) } } }
+            }
             composable("article/{slug}") { entry ->
                 val slug = entry.arguments?.getString("slug").orEmpty()
                 LaunchedEffect(slug) { vm.open(slug) }
@@ -188,7 +208,7 @@ private val tabs = listOf(Tab("home", "الرئيسية", Icons.Default.Home), T
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             Text(post.title, style = MaterialTheme.typography.titleLarge)
             post.excerpt?.takeIf(String::isNotBlank)?.let { Text(it, maxLines = 3) }
-            Text(listOfNotNull(post.authors?.display_name, post.published_at?.take(10)).joinToString(" — "), style = MaterialTheme.typography.labelMedium)
+            Text(listOfNotNull(post.authors?.display_name, publicationDate(post.published_at).takeIf(String::isNotBlank)).joinToString(" — "), style = MaterialTheme.typography.labelMedium)
         }
     }
 }
@@ -196,7 +216,9 @@ private val tabs = listOf(Tab("home", "الرئيسية", Icons.Default.Home), T
 @Composable private fun ArticleScreen(vm: ReaderViewModel, slug: String, scale: Float) {
     val state by vm.article.collectAsStateWithLifecycle()
     val saved by vm.saved.collectAsStateWithLifecycle()
+    val comments by vm.comments.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val uri = LocalUriHandler.current
     val clipboard = LocalClipboardManager.current
     val position = rememberLazyListState()
     val post = state.post
@@ -213,17 +235,34 @@ private val tabs = listOf(Tab("home", "الرئيسية", Icons.Default.Home), T
             if (state.offline) item { StatusPanel("تعذر الاتصال. تقرأ النسخة المحفوظة على جهازك.") }
             item { Text(post.title, style = MaterialTheme.typography.headlineLarge) }
             post.subtitle?.let { item { Text(it, style = MaterialTheme.typography.titleLarge) } }
-            item { Text(listOfNotNull(post.authors?.display_name, post.published_at?.take(10), post.reading_minutes?.let { "$it دقيقة قراءة" }).joinToString(" — "), style = MaterialTheme.typography.labelLarge) }
+            item { Text(listOfNotNull(post.authors?.display_name, publicationDate(post.published_at).takeIf(String::isNotBlank), post.reading_minutes?.let { "$it دقيقة قراءة" }).joinToString(" — "), style = MaterialTheme.typography.labelLarge) }
             post.imageUrl?.let { url -> item { AsyncImage(url, "غلاف المقال", Modifier.fillMaxWidth().heightIn(min = 120.dp, max = 360.dp), contentScale = ContentScale.Fit) } }
             item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IconButton(onClick = { vm.bookmark(post) }) { Icon(if (saved.any { it.id == post.id }) Icons.Default.Bookmark else Icons.Default.BookmarkBorder, "حفظ المقال أو إزالته") }
-                IconButton(onClick = { runCatching { context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, post.title + "\n" + post.shareUrl) }, "مشاركة المقال")) } }) { Icon(Icons.Default.Share, "مشاركة") }
-                IconButton(onClick = { clipboard.setText(AnnotatedString(post.shareUrl)) }) { Icon(Icons.Default.Link, "نسخ رابط المقال") }
+                if (post.sharing["webshare"] != false) IconButton(onClick = { runCatching { context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, post.title + "\n" + post.shareUrl) }, "مشاركة المقال")) } }) { Icon(Icons.Default.Share, "مشاركة") }
+                if (post.sharing["copy"] != false) IconButton(onClick = { clipboard.setText(AnnotatedString(post.shareUrl)) }) { Icon(Icons.Default.Link, "نسخ رابط المقال") }
             } }
             post.excerpt?.takeIf(String::isNotBlank)?.let { item { Text(it, style = MaterialTheme.typography.titleMedium) } }
             val document = post.content_json
             if (document != null) items(document.content) { node -> SelectionContainer { RichArticleNode(node, scale) } }
             else item { SelectionContainer { Text(Html.fromHtml(post.content.orEmpty(), Html.FROM_HTML_MODE_LEGACY).toString(), fontSize = (19 * scale).sp, lineHeight = (34 * scale).sp) } }
+            if (post.sources.isNotEmpty()) item { Text("المصادر والمراجع", style = MaterialTheme.typography.titleLarge) }
+            items(post.sources) { source -> Column {
+                Text(listOfNotNull(source.title, source.author, source.page?.let { "ص $it" }).filter(String::isNotBlank).joinToString(" — "))
+                safeHttps(source.url)?.let { url -> TextButton(onClick = { runCatching { uri.openUri(url) } }) { Text("فتح المصدر") } }
+            } }
+            if (!state.offline) {
+                item { HorizontalDivider(); Text("التعليقات", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 12.dp)) }
+                if (comments.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+                comments.error?.let { message -> item { StatusPanel(message) { vm.comments(post.id) } } }
+                if (!comments.loading && comments.error == null && comments.rows.isEmpty()) item { Text("لا توجد تعليقات مقبولة حتى الآن.") }
+                items(comments.rows, key = PublicComment::id) { comment -> OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(comment.guest_name, fontWeight = FontWeight.Bold)
+                    Text(comment.body)
+                    Text(comment.created_at.take(10), style = MaterialTheme.typography.labelSmall)
+                } } }
+                if (comments.rows.size < comments.total) item { TextButton(onClick = { vm.comments(post.id, comments.page + 1) }, enabled = !comments.loading) { Text("تحميل تعليقات أخرى") } }
+            }
             item { HorizontalDivider(); Text("حقوق هذا المحتوى محفوظة لكاتبه ومصادره.", Modifier.padding(vertical = 12.dp), style = MaterialTheme.typography.bodySmall) }
             item { Text(PLATFORM_COPYRIGHT, style = MaterialTheme.typography.bodySmall) }
         }

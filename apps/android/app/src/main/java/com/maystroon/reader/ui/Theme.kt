@@ -4,6 +4,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontWeight
+import com.maystroon.reader.R
+
+val ArabicInterfaceFont = FontFamily(Font(R.font.ibm_plex_arabic_regular), Font(R.font.ibm_plex_arabic_bold, FontWeight.Bold))
+val ArabicReadingFont = FontFamily(Font(R.font.noto_naskh_arabic))
 
 private val Navy = Color(0xFF111D31)
 private val Gold = Color(0xFFD5A96A)
@@ -18,6 +24,11 @@ private val Dark = darkColorScheme(primary = Gold, onPrimary = Navy, secondary =
     onBackground = Ivory, secondaryContainer = Color(0xFF30455D), onSecondaryContainer = Ivory)
 @Composable fun MaystroonTheme(dark: Boolean, content: @Composable () -> Unit) {
     MaterialTheme(colorScheme = if (dark) Dark else Light, typography = Typography().run {
-        copy(bodyLarge = bodyLarge.copy(fontFamily = FontFamily.SansSerif), bodyMedium = bodyMedium.copy(fontFamily = FontFamily.SansSerif))
+        copy(displayLarge = displayLarge.copy(fontFamily = ArabicInterfaceFont),
+            displayMedium = displayMedium.copy(fontFamily = ArabicInterfaceFont), displaySmall = displaySmall.copy(fontFamily = ArabicInterfaceFont),
+            headlineLarge = headlineLarge.copy(fontFamily = ArabicInterfaceFont), headlineMedium = headlineMedium.copy(fontFamily = ArabicInterfaceFont), headlineSmall = headlineSmall.copy(fontFamily = ArabicInterfaceFont),
+            titleLarge = titleLarge.copy(fontFamily = ArabicInterfaceFont), titleMedium = titleMedium.copy(fontFamily = ArabicInterfaceFont), titleSmall = titleSmall.copy(fontFamily = ArabicInterfaceFont),
+            bodyLarge = bodyLarge.copy(fontFamily = ArabicInterfaceFont), bodyMedium = bodyMedium.copy(fontFamily = ArabicInterfaceFont), bodySmall = bodySmall.copy(fontFamily = ArabicInterfaceFont),
+            labelLarge = labelLarge.copy(fontFamily = ArabicInterfaceFont), labelMedium = labelMedium.copy(fontFamily = ArabicInterfaceFont), labelSmall = labelSmall.copy(fontFamily = ArabicInterfaceFont))
     }, content = content)
 }

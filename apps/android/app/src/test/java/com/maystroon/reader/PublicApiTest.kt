@@ -10,6 +10,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PublicApiTest {
+    @Test fun `offline Arabic search matches normalized words across document and author`() {
+        val post = Post("saved", "إِبْداع القارئ", "s", authors = Author("أَحْمَد", "author"), content_json = RichNode("doc", content = listOf(RichNode("text", "فتى English"))))
+        assertEquals(listOf(post), searchSaved(listOf(post), "ابداع احمد فتي english"))
+        assertTrue(searchSaved(listOf(post), "غير موجود").isEmpty())
+        assertTrue(publicationDate("2026-10-21T23:30:00Z").startsWith("22"))
+        assertEquals("", publicationDate("invalid"))
+    }
     @Test fun `decodes the shared server contract fixture`() {
         val fixture = requireNotNull(javaClass.classLoader?.getResource("public-reader-page.json")).readText()
         val page = ApiFactory.json.decodeFromString<PostPage>(fixture)

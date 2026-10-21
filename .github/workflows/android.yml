@@ -31,25 +31,29 @@ jobs:
           gradle-version: "8.11.1"
       - name: Compile, test, lint and shrink
         working-directory: apps/android
-        run: gradle --no-daemon testDebugUnitTest lintRelease assembleDebug assembleRelease
+        run: |
+          gradle --no-daemon testDebugUnitTest assembleDebug
+          gradle --no-daemon -PtargetAbi=arm64-v8a lintRelease assembleRelease
       - name: Inspect APK and produce checksums
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p android-delivery
           cp apps/android/app/build/outputs/apk/debug/app-debug.apk android-delivery/MAYSTROON-v1.0.0-rc.1-preview-debug.apk
-          cp apps/android/app/build/outputs/apk/release/app-release-unsigned.apk android-delivery/MAYSTROON-v1.0.0-rc.1-release-unsigned.apk
-          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest min-sdk android-delivery/MAYSTROON-v1.0.0-rc.1-release-unsigned.apk | tee android-delivery/min-sdk.txt
+          cp apps/android/app/build/outputs/apk/release/app-release-unsigned.apk android-delivery/MAYSTROON-v1.0.0-rc.1-arm64-v8a-release-unsigned.apk
+          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest min-sdk android-delivery/MAYSTROON-v1.0.0-rc.1-arm64-v8a-release-unsigned.apk | tee android-delivery/min-sdk.txt
           test "$(cat android-delivery/min-sdk.txt)" = 26
-          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest debuggable android-delivery/MAYSTROON-v1.0.0-rc.1-release-unsigned.apk | tee android-delivery/debuggable.txt
+          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest debuggable android-delivery/MAYSTROON-v1.0.0-rc.1-arm64-v8a-release-unsigned.apk | tee android-delivery/debuggable.txt
           test "$(cat android-delivery/debuggable.txt)" = false
           python3 - <<'PY'
           import pathlib, zipfile
-          apk = pathlib.Path('android-delivery/MAYSTROON-v1.0.0-rc.1-release-unsigned.apk')
+          apk = pathlib.Path('android-delivery/MAYSTROON-v1.0.0-rc.1-arm64-v8a-release-unsigned.apk')
           with zipfile.ZipFile(apk) as archive:
               libraries = [name for name in archive.namelist() if name.startswith('lib/') and name.endswith('.so')]
           if libraries and not any(name.startswith('lib/arm64-v8a/') for name in libraries):
               raise SystemExit('Native libraries lack arm64-v8a support')
+          if any(not name.startswith('lib/arm64-v8a/') for name in libraries):
+              raise SystemExit('The arm64 release contains an unexpected native ABI')
           pathlib.Path('android-delivery/abi.txt').write_text('\n'.join(libraries) if libraries else 'Pure JVM/Kotlin APK: no packaged native libraries; arm64-v8a supported.\n')
           PY
           (cd android-delivery && sha256sum *.apk > SHA256SUMS.txt)
@@ -89,25 +93,17 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Boot isolated Android emulator
-        env:
-          TEST_API: ${{ matrix.api }}
-        run: |
-          set -euo pipefail
-          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
-          printf '%s\n' "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
-          sdkmanager "system-images;android-${TEST_API};google_apis;x86_64"
-          echo no | avdmanager create avd -n maystroon -k "system-images;android-${TEST_API};google_apis;x86_64" --force
-          "$ANDROID_HOME/emulator/emulator" -avd maystroon -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -camera-back none -camera-front none > /tmp/maystroon-emulator.log 2>&1 &
-          timeout 300 adb wait-for-device
-          timeout 300 bash -c 'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" = "1" ]; do sleep 2; done'
-          adb shell settings put global window_animation_scale 0
-          adb shell settings put global transition_animation_scale 0
-          adb shell settings put global animator_duration_scale 0
-          adb shell input keyevent 82
-      - name: Guest navigation and install tests
-        working-directory: apps/android
-        run: gradle --no-daemon connectedDebugAndroidTest
+      - name: Guest navigation and persistence on Android
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        with:
+          api-level: ${{ matrix.api }}
+          target: google_apis
+          arch: x86_64
+          profile: Nexus 6
+          ram-size: 2048M
+          disable-animations: true
+          emulator-boot-timeout: 600
+          script: bash scripts/android-device-check.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -115,5 +111,6 @@ jobs:
           path: |
             apps/android/app/build/reports/androidTests/
             apps/android/app/build/outputs/androidTest-results/
+            android-screenshots/
           if-no-files-found: ignore
           retention-days: 7

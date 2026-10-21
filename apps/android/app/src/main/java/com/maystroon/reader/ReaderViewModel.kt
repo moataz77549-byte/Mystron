@@ -14,10 +14,12 @@ import retrofit2.HttpException
 data class FeedState(val posts: List<Post> = emptyList(), val total: Int = 0, val page: Int = 0,
     val loading: Boolean = false, val error: String? = null)
 data class ArticleState(val post: Post? = null, val loading: Boolean = false, val offline: Boolean = false, val error: String? = null)
+data class CommentsState(val rows: List<PublicComment> = emptyList(), val total: Int = 0, val page: Int = 0, val loading: Boolean = false, val error: String? = null)
 class ReaderViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as MaystroonApplication
     private var feedJob: Job? = null
     private var articleJob: Job? = null
+    private var commentJob: Job? = null
     private var filterCategory: String? = null
     private var filterQuery: String? = null
     private var filterAuthor: String? = null
@@ -26,6 +28,8 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
     val feed = _feed.asStateFlow()
     private val _article = MutableStateFlow(ArticleState())
     val article = _article.asStateFlow()
+    private val _comments = MutableStateFlow(CommentsState())
+    val comments = _comments.asStateFlow()
     private val _categories = MutableStateFlow<List<Category>>(emptyList())
     val categories = _categories.asStateFlow()
     private val _catalogError = MutableStateFlow<String?>(null)
@@ -82,11 +86,14 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
     }
     fun open(slug: String) {
         articleJob?.cancel()
+        commentJob?.cancel()
+        _comments.value = CommentsState()
         articleJob = viewModelScope.launch {
             _article.value = ArticleState(loading = true)
             try {
                 val post = app.api.post(slug).data
                 _article.value = ArticleState(post = post, error = if (post == null) publicError(404) else null)
+                if (post != null) comments(post.id)
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 val code = (e as? HttpException)?.code()
@@ -95,6 +102,19 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
                     runCatching { ApiFactory.json.decodeFromString<Post>(it.document) }.getOrNull()
                 }
                 _article.value = ArticleState(post = cached, offline = cached != null, error = if (cached == null) error(e) else null)
+            }
+        }
+    }
+    fun comments(id: String, page: Int = 1) {
+        if (_comments.value.loading) return
+        commentJob = viewModelScope.launch {
+            _comments.update { it.copy(loading = true, error = null) }
+            try {
+                val response = app.api.comments(id, page)
+                _comments.update { CommentsState(if (page == 1) response.data else (it.rows + response.data).distinctBy(PublicComment::id), response.total, response.page) }
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                _comments.update { it.copy(loading = false, error = error(e)) }
             }
         }
     }

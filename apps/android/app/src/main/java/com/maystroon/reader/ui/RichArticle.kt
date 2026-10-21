@@ -16,6 +16,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -46,7 +48,8 @@ private fun RichNode.inlineText(depth: Int = 0): AnnotatedString = buildAnnotate
     if (depth > 30) return
     val colors = MaterialTheme.colorScheme
     val handler = LocalUriHandler.current
-    val textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = (19 * scale).sp, lineHeight = (34 * scale).sp, fontFamily = FontFamily.Serif)
+    val alignment = when (node.attr("textAlign")) { "center" -> TextAlign.Center; "right" -> TextAlign.Right; "left" -> TextAlign.Left; "justify" -> TextAlign.Justify; else -> TextAlign.Start }
+    val textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = (19 * scale).sp, lineHeight = (34 * scale).sp, fontFamily = ArabicReadingFont, textAlign = alignment, textDirection = if (node.type == "codeBlock") TextDirection.Ltr else TextDirection.ContentOrRtl)
     when (node.type) {
         "paragraph", "heading", "text", "codeBlock" -> {
             val style = if (node.type == "heading") textStyle.copy(fontSize = (if (node.attr("level") == "2") 27 else 23).times(scale).sp, fontWeight = FontWeight.Bold)
@@ -64,8 +67,8 @@ private fun RichNode.inlineText(depth: Int = 0): AnnotatedString = buildAnnotate
         }
         "poetryVerse" -> Column(Modifier.fillMaxWidth().background(colors.secondaryContainer).padding(16.dp)) {
             val size = when (node.attr("size")) { "small" -> 18; "large" -> 25; else -> 21 }
-            Text(node.attr("first"), fontSize = (size * scale).sp, fontFamily = FontFamily.Serif)
-            Text(node.attr("second"), fontSize = (size * scale).sp, fontFamily = FontFamily.Serif, modifier = Modifier.padding(start = 24.dp, top = 8.dp))
+            Text(node.attr("first"), fontSize = (size * scale).sp, fontFamily = ArabicReadingFont)
+            Text(node.attr("second"), fontSize = (size * scale).sp, fontFamily = ArabicReadingFont, modifier = Modifier.padding(start = 24.dp, top = 8.dp))
         }
         "citation" -> ElevatedCard(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

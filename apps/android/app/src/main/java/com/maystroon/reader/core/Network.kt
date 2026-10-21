@@ -23,6 +23,8 @@ interface PublicApi {
     @GET("api/v1/categories") suspend fun categories(): Envelope<List<Category>>
     @GET("api/v1/authors") suspend fun authors(): Envelope<List<Author>>
     @GET("api/v1/authors/{slug}") suspend fun author(@Path("slug") slug: String): Envelope<Author?>
+    // The existing web route calls its segment slug but validates a post UUID.
+    @GET("api/v1/posts/{id}/comments") suspend fun comments(@Path("id") id: String, @Query("page") page: Int = 1): CommentPage
 }
 
 object ApiFactory {

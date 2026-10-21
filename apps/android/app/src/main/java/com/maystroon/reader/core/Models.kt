@@ -6,9 +6,16 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import java.net.URI
+import java.text.Normalizer
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Serializable data class Envelope<T>(val data: T)
 @Serializable data class PostPage(val data: List<Post>, val total: Int, val page: Int, val pageSize: Int)
+@Serializable data class PublicComment(val id: String, val parent_id: String? = null, val guest_name: String, val body: String, val created_at: String)
+@Serializable data class CommentPage(val data: List<PublicComment>, val total: Int, val page: Int, val pageSize: Int)
 @Serializable data class Category(val id: String, val name: String, val slug: String, val description: String? = null)
 @Serializable data class Author(val display_name: String, val slug: String, val bio: String? = null)
 @Serializable data class Source(val title: String? = null, val url: String? = null, val author: String? = null, val page: String? = null)
@@ -29,6 +36,7 @@ import java.net.URI
     val featured: Boolean = false,
     val tags: List<String> = emptyList(),
     val sources: List<Source> = emptyList(),
+    val sharing: Map<String, Boolean> = emptyMap(),
 ) {
     val shareUrl get() = "https://mystron-henna.vercel.app/posts/" + encodeSegment(slug)
     val imageUrl get() = (thumbnail_asset_id ?: cover_asset_id)?.let(::assetUrl) ?: safeHttps(cover_image)
@@ -65,3 +73,18 @@ fun publicError(status: Int, retryAfter: String? = null): String = when (status)
     503 -> "الخدمة غير متاحة مؤقتاً. أعد المحاولة لاحقاً."
     else -> "تعذر تحميل المحتوى. تحقق من الاتصال ثم أعد المحاولة."
 }
+
+fun normalizeArabic(value: String): String = Normalizer.normalize(value, Normalizer.Form.NFKC)
+    .replace(Regex("[\\u064B-\\u065F\\u0670\\u0640]"), "")
+    .replace(Regex("[أإآٱ]"), "ا").replace('ى', 'ي').lowercase(Locale.ROOT).trim()
+fun searchSaved(posts: List<Post>, query: String): List<Post> {
+    val terms = normalizeArabic(query).split(Regex("\\s+")).filter(String::isNotEmpty)
+    return posts.filter { post ->
+        val text = normalizeArabic(listOfNotNull(post.title, post.excerpt, post.authors?.display_name,
+            post.tags.joinToString(" "), post.content_json?.plainText() ?: post.content).joinToString(" "))
+        terms.all(text::contains)
+    }
+}
+fun publicationDate(value: String?): String = value?.let {
+    runCatching { Instant.parse(it).atZone(ZoneId.of("Asia/Aden")).format(DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.forLanguageTag("ar-YE"))) }.getOrNull()
+}.orEmpty()
