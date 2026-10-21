@@ -13,6 +13,7 @@ export type Category = {
   image_asset_id?: string | null;
   parent_id?: string | null;
   icon?: string | null;
+  color?: string;
 };
 export type Post = {
   id: string;
@@ -45,7 +46,9 @@ export const publicPostFields =
 export async function categories(): Promise<Category[]> {
   const { data, error } = await publicDatabase()
     .from("categories")
-    .select("id,name,slug,description,sort_order,image_asset_id,parent_id,icon")
+    .select(
+      "id,name,slug,description,sort_order,image_asset_id,parent_id,icon,color",
+    )
     .eq("is_active", true)
     .is("deleted_at", null)
     .order("sort_order");

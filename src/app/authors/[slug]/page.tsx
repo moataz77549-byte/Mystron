@@ -49,6 +49,7 @@ export default async function Page({
           />
         )}
         <h1>{a.display_name}</h1>
+        {a.specialty && <p>{a.specialty}</p>}
         <p>{a.bio}</p>
         <p>{[a.country, a.city].filter(Boolean).join("، ")}</p>
         <nav>

@@ -62,23 +62,32 @@ afterAll(async () => {
   await db.close();
 });
 it("migration replays; private storage and all new tables protected", async () => {
-  await db.exec("reset role");
-  const f = readdirSync("supabase/migrations").find((f) =>
-    f.endsWith("_advanced_cms.sql"),
-  )!;
-  await db.exec(readFileSync("supabase/migrations/" + f, "utf8"));
-  expect(
-    (await db.query<{ public: boolean }>("select public from storage.buckets"))
-      .rows[0].public,
-  ).toBe(false);
-  expect(
-    (
-      await db.query(
-        "select relname from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname in ('public','private') and c.relkind='r' and not c.relrowsecurity",
-      )
-    ).rows,
-  ).toEqual([]);
-  await actor(author);
+  await db.exec("reset role;begin");
+  try {
+    const f = readdirSync("supabase/migrations").find((f) =>
+      f.endsWith("_advanced_cms.sql"),
+    )!;
+    await db.exec(readFileSync("supabase/migrations/" + f, "utf8"));
+    expect(
+      (
+        await db.query<{ public: boolean }>(
+          "select public from storage.buckets",
+        )
+      ).rows[0].public,
+    ).toBe(false);
+    expect(
+      (
+        await db.query(
+          "select relname from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname in ('public','private') and c.relkind='r' and not c.relrowsecurity",
+        )
+      ).rows,
+    ).toEqual([]);
+  } finally {
+    // Replaying an old migration must not leave obsolete RPC definitions
+    // installed for the authorization tests that follow it.
+    await db.exec("rollback");
+    await actor(author);
+  }
 });
 it("AUTHOR creates own draft with author/category and structured Arabic content", async () => {
   post = await rpc("cms_save_post", [
@@ -507,4 +516,362 @@ it("editorial list filters and Arabic normalization preserve current row permiss
     name.endsWith("_admin_editorial_overhaul.sql"),
   )!;
   await db.exec(readFileSync("supabase/migrations/" + migration, "utf8"));
+});
+
+it("tag merges reuse versioned saves, deduplicate tags and fail atomically on stale counts", async () => {
+  await actor(owner);
+  const first = await rpc("cms_save_post", [
+    null,
+    { title: "وسوم أولى", slug: "tags-first", tags: ["قديم", "نهائي", "ثابت"] },
+    null,
+  ]);
+  const second = await rpc("cms_save_post", [
+    null,
+    { title: "وسوم ثانية", slug: "tags-second", tags: ["قديم"] },
+    null,
+  ]);
+  await expect(
+    db.query("select cms_merge_tag($1,$2,$3)", ["قديم", "نهائي", 1]),
+  ).rejects.toThrow("VERSION_CONFLICT");
+  const untouched = await db.query<{ tags: string[]; version: number }>(
+    "select tags,version from posts where id=$1",
+    [first.id],
+  );
+  expect(untouched.rows[0].tags).toContain("قديم");
+  expect(untouched.rows[0].version).toBe(first.version);
+  const merged = await db.query<{ result: { updated: number } }>(
+    "select cms_merge_tag($1,$2,$3) result",
+    ["قديم", "نهائي", 2],
+  );
+  expect(merged.rows[0].result.updated).toBe(2);
+  const saved = await db.query<{ tags: string[]; version: number }>(
+    "select tags,version from posts where id=$1",
+    [first.id],
+  );
+  expect(saved.rows[0].tags).toEqual(["نهائي", "ثابت"]);
+  expect(saved.rows[0].version).toBe(first.version + 1);
+  expect(
+    (
+      await db.query("select id from post_revisions where post_id=$1", [
+        second.id,
+      ])
+    ).rows.length,
+  ).toBeGreaterThan(1);
+  const again = await db.query<{ result: { updated: number } }>(
+    "select cms_merge_tag($1,$2,$3) result",
+    ["قديم", "نهائي", 2],
+  );
+  expect(again.rows[0].result.updated).toBe(0);
+  await db.exec("reset role;set role anon");
+  await expect(db.query("select admin_tag_list(1,'')")).rejects.toThrow();
+  await actor(owner);
+});
+it("tag lists and mutations stay inside authors' allowed posts", async () => {
+  await actor(owner);
+  const privatePost = await rpc("cms_save_post", [
+    null,
+    { title: "وسم خاص", slug: "tag-private-owner", tags: ["وسم-خاص-للمالك"] },
+    null,
+  ]);
+  await actor(other);
+  const own = await rpc("cms_save_post", [
+    null,
+    { title: "وسم كاتب", slug: "tag-private-other", tags: ["وسم-خاص-للمالك"] },
+    null,
+  ]);
+  const list = await db.query<{
+    result: { rows: { posts: number; editable_posts: number }[] };
+  }>("select admin_tag_list(1,$1) result", ["وسم-خاص-للمالك"]);
+  expect(list.rows[0].result.rows[0]).toMatchObject({
+    posts: 1,
+    editable_posts: 1,
+  });
+  const merge = await db.query<{ result: { updated: number } }>(
+    "select cms_merge_tag($1,$2,$3) result",
+    ["وسم-خاص-للمالك", "وسم-الكاتب", 1],
+  );
+  expect(merge.rows[0].result.updated).toBe(1);
+  await actor(owner);
+  const original = await db.query<{ tags: string[] }>(
+    "select tags from posts where id=$1",
+    [privatePost.id],
+  );
+  expect(original.rows[0].tags).toEqual(["وسم-خاص-للمالك"]);
+  expect(
+    (
+      await db.query<{ tags: string[] }>("select tags from posts where id=$1", [
+        own.id,
+      ])
+    ).rows[0].tags,
+  ).toEqual(["وسم-الكاتب"]);
+});
+it("report decisions update comment moderation and audit atomically without exposing visitor hashes", async () => {
+  await actor(owner);
+  const item = await rpc("cms_save_post", [
+    null,
+    { title: "بلاغ اختبار", slug: "report-fixture-post" },
+    null,
+  ]);
+  await db.exec("reset role");
+  const comment = (
+    await db.query<{ id: string }>(
+      "insert into comments(post_id,guest_name,body,status) values($1,'زائر اختبار','تعليق يحتاج مراجعة','approved') returning id",
+      [item.id],
+    )
+  ).rows[0].id;
+  const report = (
+    await db.query<{ id: string }>(
+      "insert into comment_reports(comment_id,reason,visitor_hash) values($1,'سبب بلاغ الاختبار','private-visitor-hash') returning id",
+      [comment],
+    )
+  ).rows[0].id;
+  await actor(other);
+  await expect(
+    db.query("select admin_report_list(1,'pending')"),
+  ).rejects.toThrow("FORBIDDEN");
+  await expect(
+    db.query("select cms_resolve_report($1,'hidden')", [report]),
+  ).rejects.toThrow("FORBIDDEN");
+  await actor(owner);
+  const list = await db.query<{ result: unknown }>(
+    "select admin_report_list(1,'pending') result",
+  );
+  expect(JSON.stringify(list.rows)).not.toContain("private-visitor-hash");
+  await db.query("select cms_resolve_report($1,'hidden')", [report]);
+  const updated = await db.query<{ status: string }>(
+    "select status from comments where id=$1",
+    [comment],
+  );
+  expect(updated.rows[0].status).toBe("hidden");
+  const decision = await db.query<{ resolution: string; resolved_at: string }>(
+    "select resolution,resolved_at from comment_reports where id=$1",
+    [report],
+  );
+  expect(decision.rows[0].resolution).toBe("hidden");
+  expect(decision.rows[0].resolved_at).toBeTruthy();
+  await db.query("select cms_resolve_report($1,'dismissed')", [report]);
+  expect(
+    (
+      await db.query<{ resolution: string }>(
+        "select resolution from comment_reports where id=$1",
+        [report],
+      )
+    ).rows[0].resolution,
+  ).toBe("hidden");
+  expect(
+    (
+      await db.query(
+        "select id from audit_logs where entity_id=$1 and action='comment_report_hidden'",
+        [report],
+      )
+    ).rows,
+  ).toHaveLength(1);
+});
+
+it("scoped moderation lists exclude out-of-category comments even when publicly approved", async () => {
+  await actor(owner);
+  const permittedCategory = await rpc("cms_save_category", [
+    null,
+    { name: "نطاق مراجعة أول", slug: "report-scope-first" },
+    null,
+  ]);
+  const secondCategory = await rpc("cms_save_category", [
+    null,
+    { name: "نطاق مراجعة ثان", slug: "report-scope-second" },
+    null,
+  ]);
+  const allowed = await rpc("cms_save_post", [
+    null,
+    {
+      title: "نطاق مسموح",
+      slug: "report-scope-allowed",
+      primary_category_id: permittedCategory.id,
+      category_ids: [permittedCategory.id],
+    },
+    null,
+  ]);
+  const denied = await rpc("cms_save_post", [
+    null,
+    {
+      title: "نطاق ممنوع",
+      slug: "report-scope-denied",
+      primary_category_id: secondCategory.id,
+      category_ids: [secondCategory.id],
+    },
+    null,
+  ]);
+  await db.exec("reset role");
+  const firstComment = (
+    await db.query<{ id: string }>(
+      "insert into comments(post_id,guest_name,body,status) values($1,'زائر','مسموح','approved') returning id",
+      [allowed.id],
+    )
+  ).rows[0].id;
+  const secondComment = (
+    await db.query<{ id: string }>(
+      "insert into comments(post_id,guest_name,body,status) values($1,'زائر','ممنوع','approved') returning id",
+      [denied.id],
+    )
+  ).rows[0].id;
+  const allowedReport = (
+    await db.query<{ id: string }>(
+      "insert into comment_reports(comment_id,reason,visitor_hash) values($1,'بلاغ مسموح','scope-visitor-1') returning id",
+      [firstComment],
+    )
+  ).rows[0].id;
+  const deniedReport = (
+    await db.query<{ id: string }>(
+      "insert into comment_reports(comment_id,reason,visitor_hash) values($1,'بلاغ ممنوع','scope-visitor-2') returning id",
+      [secondComment],
+    )
+  ).rows[0].id;
+  await db.query("delete from user_roles where user_id=$1", [other]);
+  await db.query(
+    "insert into user_roles select $1,id from roles where name='EDITOR'",
+    [other],
+  );
+  await db.query(
+    "update admin_memberships set scope_mode='restricted',category_ids=array[$2::uuid] where user_id=$1",
+    [other, permittedCategory.id],
+  );
+  await actor(other);
+  const comments = await db.query<{ result: { rows: { id: string }[] } }>(
+    "select admin_comment_list(1,'all') result",
+  );
+  expect(comments.rows[0].result.rows.map((row) => row.id)).toContain(
+    firstComment,
+  );
+  expect(comments.rows[0].result.rows.map((row) => row.id)).not.toContain(
+    secondComment,
+  );
+  const reports = await db.query<{ result: { rows: { id: string }[] } }>(
+    "select admin_report_list(1,'pending') result",
+  );
+  expect(reports.rows[0].result.rows.map((row) => row.id)).toContain(
+    allowedReport,
+  );
+  expect(reports.rows[0].result.rows.map((row) => row.id)).not.toContain(
+    deniedReport,
+  );
+  await expect(
+    db.query("select cms_resolve_report($1,'hidden')", [deniedReport]),
+  ).rejects.toThrow("FORBIDDEN");
+  await actor(owner);
+  const untouched = await db.query<{ resolved_at: string | null }>(
+    "select resolved_at from comment_reports where id=$1",
+    [deniedReport],
+  );
+  expect(untouched.rows[0].resolved_at).toBeNull();
+});
+
+it("catalog metadata preserves existing values and cannot grant an author an admin identity", async () => {
+  await actor(owner);
+  const category = await rpc("cms_save_category", [
+    null,
+    { name: "لون اختبار", slug: "metadata-category", color: "#C77955" },
+    null,
+  ]);
+  const record = await rpc("cms_save_author", [
+    null,
+    {
+      display_name: "متخصص اختبار",
+      slug: "metadata-writer",
+      specialty: "  الأدب العربي  ",
+    },
+  ]);
+  expect(
+    (
+      await db.query<{ color: string }>(
+        "select color from categories where id=$1",
+        [category.id],
+      )
+    ).rows[0].color,
+  ).toBe("#C77955");
+  expect(
+    (
+      await db.query<{ specialty: string; profile_id: string | null }>(
+        "select specialty,profile_id from authors where id=$1",
+        [record.id],
+      )
+    ).rows[0],
+  ).toEqual({ specialty: "الأدب العربي", profile_id: null });
+  await rpc("cms_save_category", [
+    category.id,
+    { name: "اسم آخر", slug: "metadata-category" },
+    null,
+  ]);
+  expect(
+    (
+      await db.query<{ color: string }>(
+        "select color from categories where id=$1",
+        [category.id],
+      )
+    ).rows[0].color,
+  ).toBe("#C77955");
+  await expect(
+    rpc("cms_save_category", [
+      category.id,
+      { color: "red; background:url(https://example.test)" },
+      null,
+    ]),
+  ).rejects.toThrow();
+  await expect(
+    rpc("cms_save_author", [record.id, { specialty: "x".repeat(201) }]),
+  ).rejects.toThrow();
+  await actor(author);
+  await expect(
+    rpc("cms_save_category", [category.id, { color: "#ffffff" }, null]),
+  ).rejects.toThrow("FORBIDDEN");
+  await expect(
+    rpc("cms_save_author", [record.id, { specialty: "تغيير ممنوع" }]),
+  ).rejects.toThrow("FORBIDDEN");
+  await actor(owner);
+});
+
+it("self-service sessions hide other users and revoke own access immediately without security.manage", async () => {
+  const extra = "55555555-5555-4555-8555-555555555555";
+  await db.exec("reset role");
+  await db.query("insert into auth.sessions(id,user_id) values($1,$2)", [
+    extra,
+    author,
+  ]);
+  await actor(author);
+  const visible = await db.query<{
+    result: { rows: { id: string; is_current: boolean }[] };
+  }>("select admin_my_sessions(1) result");
+  expect(visible.rows[0].result.rows.map((row) => row.id)).toContain(extra);
+  expect(visible.rows[0].result.rows.map((row) => row.id)).not.toContain(owner);
+  expect(
+    visible.rows[0].result.rows.find((row) => row.id === author)?.is_current,
+  ).toBe(true);
+  await expect(
+    db.query("select admin_revoke_my_session($1)", [owner]),
+  ).rejects.toThrow("NOT_FOUND");
+  await expect(
+    db.query("select admin_revoke_my_session($1)", [author]),
+  ).rejects.toThrow("CURRENT_SESSION_USE_LOGOUT");
+  await db.query("select admin_revoke_my_session($1)", [extra]);
+  await db.query("select admin_revoke_my_session($1)", [extra]);
+  await db.query("select set_config('request.jwt.claims',$1,false)", [
+    JSON.stringify({
+      sub: author,
+      session_id: extra,
+      iat: Math.floor(Date.now() / 1000),
+    }),
+  ]);
+  await expect(db.query("select admin_my_sessions(1)")).rejects.toThrow(
+    "FORBIDDEN",
+  );
+  await actor(owner);
+  expect(
+    (
+      await db.query(
+        "select id from audit_logs where actor_id=$1 and action='OWN_SESSION_REVOKED' and entity_id=$2",
+        [author, extra],
+      )
+    ).rows,
+  ).toHaveLength(1);
+  await db.exec("reset role;set role anon");
+  await expect(db.query("select admin_my_sessions(1)")).rejects.toThrow();
+  await actor(owner);
 });

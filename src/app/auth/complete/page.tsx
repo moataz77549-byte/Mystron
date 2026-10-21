@@ -20,7 +20,9 @@ export default function Complete() {
           }),
         });
         if (!r.ok) throw Error();
-        location.replace("/admin");
+        location.replace(
+          hash.get("type") === "recovery" ? "/auth/reset" : "/admin",
+        );
       } catch {
         setMessage("الرابط غير صالح أو منتهٍ. اطلب رابط دخول جديداً.");
       }

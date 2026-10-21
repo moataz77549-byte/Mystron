@@ -44,3 +44,7 @@ PR #1 is merged. final-production-recovery has no commits missing from main; its
 ## Acceptance boundaries
 
 Do not seed production, impersonate the owner's Auth session, bypass PIN/RLS, copy production secrets to Preview, merge main or replace Production. Exercise writes in the isolated staging test harness first. Hosted staging and real Telegram consumption require a separately configured nonproduction backend and authorized user session. A passing SQL fixture is not described as live Supabase Auth/Storage success.
+
+## تحديث المتابعة — 2026-10-21
+
+هذا تدقيق خط الأساس التاريخي. الحالة المحدثة بتاريخ 2026-10-21 في ADMIN_OVERHAUL_AUDIT.md، والنتائج والقيود في ADMIN_OVERHAUL_TEST_REPORT.md وPRODUCTION_ACCEPTANCE.md.

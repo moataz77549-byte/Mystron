@@ -20,6 +20,7 @@ export default async function Page() {
         { key: "short_name", label: "الاسم المختصر", nullable: true },
         { key: "slug", label: "الرابط الدائم" },
         { key: "bio", label: "النبذة", kind: "textarea", nullable: true },
+        { key: "specialty", label: "التخصص", nullable: true },
         { key: "country", label: "الدولة", nullable: true },
         { key: "city", label: "المدينة", nullable: true },
         { key: "website", label: "الموقع الإلكتروني", nullable: true },

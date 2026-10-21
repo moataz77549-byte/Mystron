@@ -109,3 +109,53 @@ it("returns reviewable 409 conflict without database internals", async () => {
   expect(r.status).toBe(409);
   expect(await r.json()).toEqual({ error: { code: "VERSION_CONFLICT" } });
 });
+
+it("validates category colors and author specialties before forwarding metadata to the existing RPCs", async () => {
+  state.signedIn = true;
+  const result = await POST(
+    req({ patch: { name: "قسم", slug: "category", color: "#C77955" } }),
+    { params: Promise.resolve({ resource: "categories" }) },
+  );
+  expect(result.status).toBe(200);
+  expect(state.rpc).toHaveBeenLastCalledWith(
+    "cms_save_category",
+    expect.objectContaining({
+      p_patch: { name: "قسم", slug: "category", color: "#C77955" },
+    }),
+  );
+  const unsafe = await POST(
+    req({
+      patch: {
+        name: "قسم",
+        slug: "category",
+        color: "url(https://example.test)",
+      },
+    }),
+    { params: Promise.resolve({ resource: "categories" }) },
+  );
+  expect(unsafe.status).toBe(400);
+  const specialty = await POST(
+    req({
+      patch: { display_name: "كاتب", slug: "author", specialty: "الأدب" },
+    }),
+    { params: Promise.resolve({ resource: "authors" }) },
+  );
+  expect(specialty.status).toBe(200);
+  expect(state.rpc).toHaveBeenLastCalledWith(
+    "cms_save_author",
+    expect.objectContaining({
+      p_patch: { display_name: "كاتب", slug: "author", specialty: "الأدب" },
+    }),
+  );
+  const tooLong = await POST(
+    req({
+      patch: {
+        display_name: "كاتب",
+        slug: "author",
+        specialty: "x".repeat(201),
+      },
+    }),
+    { params: Promise.resolve({ resource: "authors" }) },
+  );
+  expect(tooLong.status).toBe(400);
+});

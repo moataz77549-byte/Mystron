@@ -18,7 +18,11 @@ export async function GET(req: NextRequest) {
     if (!result.error) {
       const token = req.nextUrl.searchParams.get("token");
       const target = new URL(
-        token && /^[\w-]{43}$/.test(token) ? "/invite" : "/admin/account",
+        type === "recovery"
+          ? "/auth/reset"
+          : token && /^[\w-]{43}$/.test(token)
+            ? "/invite"
+            : "/admin/account",
         siteUrl(),
       );
       if (token && /^[\w-]{43}$/.test(token))

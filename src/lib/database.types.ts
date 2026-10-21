@@ -45,6 +45,7 @@ export type Database = {
         Row: {
           avatar_asset_id: string | null;
           bio: string | null;
+          specialty: string | null;
           city: string | null;
           country: string | null;
           created_at: string;
@@ -63,6 +64,7 @@ export type Database = {
         Insert: {
           avatar_asset_id?: string | null;
           bio?: string | null;
+          specialty?: string | null;
           city?: string | null;
           country?: string | null;
           created_at?: string;
@@ -81,6 +83,7 @@ export type Database = {
         Update: {
           avatar_asset_id?: string | null;
           bio?: string | null;
+          specialty?: string | null;
           city?: string | null;
           country?: string | null;
           created_at?: string;
@@ -119,6 +122,7 @@ export type Database = {
           deleted_at: string | null;
           description: string | null;
           icon: string | null;
+          color: string;
           id: string;
           image_asset_id: string | null;
           is_active: boolean;
@@ -133,6 +137,7 @@ export type Database = {
           deleted_at?: string | null;
           description?: string | null;
           icon?: string | null;
+          color?: string;
           id?: string;
           image_asset_id?: string | null;
           is_active?: boolean;
@@ -147,6 +152,7 @@ export type Database = {
           deleted_at?: string | null;
           description?: string | null;
           icon?: string | null;
+          color?: string;
           id?: string;
           image_asset_id?: string | null;
           is_active?: boolean;
@@ -934,6 +940,7 @@ export type Database = {
         Returns: {
           avatar_asset_id: string | null;
           bio: string | null;
+          specialty: string | null;
           city: string | null;
           country: string | null;
           created_at: string;
@@ -963,6 +970,7 @@ export type Database = {
           deleted_at: string | null;
           description: string | null;
           icon: string | null;
+          color: string;
           id: string;
           image_asset_id: string | null;
           is_active: boolean;

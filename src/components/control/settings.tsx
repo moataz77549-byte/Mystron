@@ -450,12 +450,17 @@ function HomeSections({
     post_ids?: string[];
   };
   const sections = value.sections as Section[];
+  const [announcement, setAnnouncement] = useState("");
   function update(i: number, patch: Partial<Section>) {
     change({
       sections: sections.map((s, n) => (n === i ? { ...s, ...patch } : s)),
     });
   }
   function move(i: number, step: number) {
+    if (i + step < 0 || i + step >= sections.length) return;
+    setAnnouncement(
+      "تم نقل " + sections[i].title + " إلى الموضع " + (i + step + 1),
+    );
     const next = [...sections];
     [next[i], next[i + step]] = [next[i + step], next[i]];
     change({ sections: next });
@@ -463,11 +468,56 @@ function HomeSections({
   return (
     <>
       <p>
-        رتّب الأقسام بأزرار النقل المتاحة بلوحة المفاتيح. المقال اليدوي يحتاج
-        تدوينة منشورة.
+        اسحب القسم من مقبض الترتيب، أو استخدم أزرار النقل المتاحة بلوحة المفاتيح
+        وعلى الهاتف. المقال اليدوي يحتاج تدوينة منشورة.
+      </p>
+      <p role="status" aria-live="polite">
+        {announcement}
       </p>
       {sections.map((s, i) => (
-        <section key={s.id} className="home-section-editor">
+        <section
+          key={s.id}
+          className="home-section-editor"
+          aria-label={"وحدة " + s.title}
+          onDragOver={(event) => {
+            if (
+              event.dataTransfer.types.includes(
+                "application/x-maystroon-section",
+              )
+            )
+              event.preventDefault();
+          }}
+          onDrop={(event) => {
+            const id = event.dataTransfer.getData(
+              "application/x-maystroon-section",
+            );
+            const from = sections.findIndex((section) => section.id === id);
+            if (from < 0 || from === i) return;
+            event.preventDefault();
+            const next = [...sections];
+            const [section] = next.splice(from, 1);
+            next.splice(i, 0, section);
+            change({ sections: next });
+            setAnnouncement(
+              "تم نقل " + section.title + " إلى الموضع " + (i + 1),
+            );
+          }}
+        >
+          <button
+            type="button"
+            className="button outline"
+            draggable
+            aria-label={"سحب لترتيب " + s.title}
+            onDragStart={(event) => {
+              event.dataTransfer.setData(
+                "application/x-maystroon-section",
+                s.id,
+              );
+              event.dataTransfer.effectAllowed = "move";
+            }}
+          >
+            مقبض الترتيب
+          </button>
           <div className="toolbar">
             <button
               className="button outline"

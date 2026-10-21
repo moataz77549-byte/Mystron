@@ -42,6 +42,15 @@ export async function adminRequest<T>(
   return body as T;
 }
 const messages: Record<string, string> = {
+  CURRENT_SESSION_USE_LOGOUT: "استخدم تسجيل الخروج لإنهاء الجلسة الحالية.",
+  SERVICE_UNAVAILABLE: "الخدمة غير متاحة حالياً. حاول بعد قليل.",
+  WEAK_PASSWORD: "كلمة المرور ضعيفة وفق سياسة الأمان. اختر كلمة أقوى.",
+  SAME_PASSWORD: "اختر كلمة مرور مختلفة عن الكلمة الحالية.",
+  PASSWORD_UPDATE_FAILED: "تعذر حفظ كلمة المرور. حاول مجدداً.",
+  REAUTHENTICATION_REQUIRED:
+    "يلزم تأكيد هويتك مجدداً. اطلب رابط استعادة جديداً.",
+  TAG_BATCH_TOO_LARGE:
+    "يتجاوز الوسم حد 500 مقال للعملية الواحدة. يلزم تقسيم العملية بإشراف المسؤول.",
   UNAUTHORIZED: "انتهت الجلسة الإدارية، يرجى تسجيل الدخول مجدداً.",
   RATE_LIMITED:
     "تجاوزت عدد المحاولات المسموح بها، حاول مجدداً بعد انتهاء مدة الانتظار.",

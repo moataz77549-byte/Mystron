@@ -1,12 +1,14 @@
 "use client";
 import { useState } from "react";
 import { command } from "./command";
+import { adminErrorMessage } from "@/lib/client/request";
 type Row = { id: string; [key: string]: unknown };
 type Field = {
   key: string;
   label: string;
-  kind?: "number" | "boolean" | "textarea" | "json" | "datetime";
+  kind?: "number" | "boolean" | "textarea" | "json" | "datetime" | "color";
   nullable?: boolean;
+  defaultValue?: string;
 };
 export default function Catalog({
   resource,
@@ -25,21 +27,22 @@ export default function Catalog({
     Object.fromEntries(
       fields.map((f) => [
         f.key,
-        f.kind === "boolean"
-          ? f.key !== "sponsored"
-          : f.kind === "number"
-            ? 0
-            : f.kind === "json"
-              ? f.key === "pages"
-                ? "[]"
-                : "{}"
-              : f.key === "style"
-                ? "navy"
-                : f.key === "placement"
-                  ? "ticker"
-                  : f.kind === "datetime" && !f.nullable
-                    ? new Date().toISOString().slice(0, 16)
-                    : "",
+        f.defaultValue ??
+          (f.kind === "boolean"
+            ? f.key !== "sponsored"
+            : f.kind === "number"
+              ? 0
+              : f.kind === "json"
+                ? f.key === "pages"
+                  ? "[]"
+                  : "{}"
+                : f.key === "style"
+                  ? "navy"
+                  : f.key === "placement"
+                    ? "ticker"
+                    : f.kind === "datetime" && !f.nullable
+                      ? new Date().toISOString().slice(0, 16)
+                      : ""),
       ]),
     ),
   );
@@ -53,6 +56,7 @@ export default function Catalog({
     for (const f of fields) {
       const value =
         row?.[f.key] ??
+        f.defaultValue ??
         (f.kind === "boolean"
           ? f.key !== "sponsored"
           : f.kind === "number"
@@ -112,7 +116,7 @@ export default function Catalog({
       );
       edit(null);
     } catch (e) {
-      setError(String(e));
+      setError(adminErrorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -158,9 +162,11 @@ export default function Catalog({
                     type={
                       f.kind === "number"
                         ? "number"
-                        : f.kind === "datetime"
-                          ? "datetime-local"
-                          : "text"
+                        : f.kind === "color"
+                          ? "color"
+                          : f.kind === "datetime"
+                            ? "datetime-local"
+                            : "text"
                     }
                     dir="auto"
                     value={String(values[f.key] ?? "")}
@@ -201,7 +207,7 @@ export default function Catalog({
                       });
                       setError(`تم نقل ${n} تدوينة إلى القسم المحدد.`);
                     } catch (e) {
-                      setError(String(e));
+                      setError(adminErrorMessage(e));
                     }
                   }}
                 >

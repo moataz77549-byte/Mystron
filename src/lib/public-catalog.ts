@@ -1,7 +1,7 @@
 import "server-only";
 import { publicDatabase } from "./supabase";
 export const authorFields =
-  "id,display_name,short_name,slug,bio,country,city,website,links,avatar_asset_id";
+  "id,display_name,short_name,slug,bio,specialty,country,city,website,links,avatar_asset_id";
 export async function publicAuthor(slug: string) {
   const { data, error } = await publicDatabase()
     .from("authors")

@@ -37,8 +37,10 @@ export const adminGroups: AdminGroup[] = [
       link("editorial", "استوديو التحرير", "posts.read"),
       link("categories", "الأقسام", "categories.manage"),
       link("authors", "الكتّاب", "authors.manage"),
+      link("tags", "الوسوم", "posts.read"),
       link("media", "مكتبة الوسائط", "media.manage"),
-      link("comments", "التعليقات والبلاغات", "comments.moderate"),
+      link("comments", "التعليقات", "comments.moderate"),
+      link("reports", "البلاغات", "comments.moderate"),
     ],
   },
   {
@@ -77,7 +79,10 @@ export const adminGroups: AdminGroup[] = [
   {
     id: "account",
     label: "حسابي",
-    links: [link("account", "الملف الشخصي وحماية PIN")],
+    links: [
+      link("account", "الملف الشخصي وحماية PIN"),
+      link("account/sessions", "جلساتي الإدارية"),
+    ],
   },
 ];
 export const adminLinks = adminGroups.flatMap((group) => group.links);

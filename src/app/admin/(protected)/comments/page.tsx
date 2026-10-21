@@ -1,33 +1,35 @@
-import { requireAdmin } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 import Moderation from "@/components/editor/moderation";
-export default async function Page() {
-  const { db, permissions } = await requireAdmin();
-  if (!permissions["comments.moderate"])
-    return <p>مراجعة التعليقات تتطلب صلاحية تحرير.</p>;
-  const [c, r] = await Promise.all([
-    db
-      .from("comments")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(100),
-    db
-      .from("comment_reports")
-      .select("id,comment_id,reason,created_at")
-      .order("created_at", { ascending: false })
-      .limit(100),
-  ]);
-  if (c.error || r.error) throw new Error("تعذر تحميل المراجعة");
+import { z } from "zod";
+const querySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).max(10000).default(1),
+    status: z
+      .enum(["pending", "approved", "rejected", "hidden", "all"])
+      .default("pending"),
+  })
+  .strict();
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const { db } = await requirePermission("comments.moderate");
+  const parsed = querySchema.safeParse(await searchParams);
+  if (!parsed.success) return <p role="alert">فلاتر التعليقات غير صالحة.</p>;
+  const { page, status } = parsed.data;
+  const result = await db.rpc("admin_comment_list", {
+    p_page: page,
+    p_status: status,
+  });
+  if (result.error) throw new Error("تعذر تحميل التعليقات");
   return (
-    <>
-      <Moderation initial={c.data} />
-      <h2>بلاغات الزوار</h2>
-      {r.data.map((x) => (
-        <article key={x.id}>
-          <code>{x.comment_id}</code>
-          <p>{x.reason}</p>
-        </article>
-      ))}
-      {!r.data.length && <p>لا توجد بلاغات.</p>}
-    </>
+    <Moderation
+      key={page + ":" + status}
+      initial={result.data.rows}
+      page={page}
+      total={result.data.total}
+      filter={status}
+    />
   );
 }

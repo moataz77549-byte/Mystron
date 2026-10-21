@@ -11,3 +11,7 @@ Primary scheduler: Supabase pg_cron job `maystroon-publish-due`, every minute. I
 An optional GET /api/v1/cron/publish HTTP fallback requires a minimum-32-character CRON_SECRET and exact Bearer token. It calls the same engine and revalidates paths. No Vercel Cron schedule is configured, so no Vercel-plan minute precision is claimed. Database Cron is enabled on the chosen Supabase project; generic environments without pg_cron skip activation and require another scheduler.
 
 Daily retention job `maystroon-retention` removes raw view identifiers older than 30 days, comment reports older than 30 days and optional comment email contacts older than 90 days. Public aggregate view counts remain. Publication pages/sitemap are dynamic, so direct database jobs do not leave a static page displaying a draft.
+
+## تحديث المتابعة — 2026-10-21
+
+دمج الوسوم يمر بمحرك cms_save_post القائم داخل transaction مع تحقق الصلاحية والنطاق والعدد المتوقع، دون مسار نشر موازٍ. قرار APPROVED المستقل لم يُنفذ بعد ولا تُعرض دورة النشر على أنها مستوفية لهذا البند.

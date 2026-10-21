@@ -75,3 +75,17 @@ GET `/api/v1/admin/telegram` returns the authenticated caller's link/configurati
 Internal POST `/api/v1/internal/automation/{updates,work,ack,health}` requires x-maystroon-time, x-maystroon-nonce and HMAC signature over timestamp/newline/nonce/newline/path/newline/SHA256(body). A reused nonce returns REPLAY_REJECTED 409; unsigned requests return 401. The Python webhook is separately protected by Telegram's secret header. These endpoints are server-to-server, never public administrative APIs by URL alone.
 
 Common new errors: AI_DISABLED/AI_UNCONFIGURED/AI_UNAVAILABLE 503; AI_QUOTA_EXCEEDED 429; INVALID_INPUT 400; POST_NOT_FOUND 404; SOURCE_CHANGED/AI_UNGROUNDED_OUTPUT/PROVIDER_TIMEOUT 503; UNAUTHORIZED 401; FORBIDDEN/PIN_* 403; VERSION_CONFLICT 409. Request IDs contain no prompts or secrets. See provider/Telegram guides for deployment contracts.
+
+## Admin editorial continuation (2026-10-21)
+
+The existing category and author command contracts accept optional `patch.color` (opaque six-digit hex) and `patch.specialty` (at most 200 characters). Public category and author responses include these additive fields. Creating an author profile does not create an Auth user or grant an admin role.
+
+- `GET /api/v1/admin/tags?page=1&q=` lists visible tags and editable counts.
+- `POST /api/v1/admin/tags` accepts `source`, `target`, `expected_count`; the merge is scoped and transactional, at most 500 posts.
+- `POST /api/v1/admin/reports` accepts `id`, `action` (`dismissed`, `hidden`, `rejected`).
+- `GET /api/v1/admin/account/sessions?page=1` returns only the current account's sessions, 25 per page.
+- `POST /api/v1/admin/account/sessions` accepts only `id` for an owned noncurrent session and revokes its administrative access. It cannot target another user or log out the current session; use `/auth/logout` for that.
+- `POST /auth/recovery` accepts an email and gives an enumeration-resistant acknowledgement.
+- `POST /auth/password` accepts matching `password`/`confirmation` with 12–128 characters, verifies the current Auth user, clears the PIN proof, and reports password persistence separately from global sign-out.
+
+Write requests require the configured Origin. Administrative responses are private/no-store. No token, password or PIN is included in the contracts or logs. See `public/openapi.json` version 1.4.0.

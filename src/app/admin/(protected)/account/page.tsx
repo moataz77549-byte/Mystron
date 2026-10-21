@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/auth";
+import { PasswordForm } from "@/components/control/password";
 import { PinProtection } from "@/components/control/pin";
 export default async function Account() {
   const { user, roles, access } = await requireAdmin();
@@ -9,6 +10,7 @@ export default async function Account() {
       <p>
         البريد مؤكد بواسطة Supabase Auth. الأدوار الحالية: {roles.join("، ")}
       </p>
+      <PasswordForm />
       {roles.includes("OWNER") ? (
         <PinProtection configured={access.pin_configured} />
       ) : (
