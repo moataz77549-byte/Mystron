@@ -515,7 +515,13 @@ it("editorial list filters and Arabic normalization preserve current row permiss
   const migration = readdirSync("supabase/migrations").find((name) =>
     name.endsWith("_admin_editorial_overhaul.sql"),
   )!;
-  await db.exec(readFileSync("supabase/migrations/" + migration, "utf8"));
+  await db.exec("begin");
+  try {
+    await db.exec(readFileSync("supabase/migrations/" + migration, "utf8"));
+  } finally {
+    // Replay coverage must not replace the current read model for later tests.
+    await db.exec("rollback");
+  }
 });
 
 it("tag merges reuse versioned saves, deduplicate tags and fail atomically on stale counts", async () => {
@@ -874,4 +880,181 @@ it("self-service sessions hide other users and revoke own access immediately wit
   await db.exec("reset role;set role anon");
   await expect(db.query("select admin_my_sessions(1)")).rejects.toThrow();
   await actor(owner);
+});
+it("editorial approval is scoped, idempotent and valid only for the reviewed version", async () => {
+  await actor(author);
+  let item = await rpc("cms_save_post", [
+    null,
+    { title: "نسخة للاعتماد", slug: "approval-version" },
+  ]);
+  await expect(
+    rpc("cms_transition_post", [item.id, "approve", item.version]),
+  ).rejects.toThrow(/FORBIDDEN/);
+  await actor(owner);
+  await expect(
+    rpc("cms_transition_post", [item.id, "approve", item.version]),
+  ).rejects.toThrow(/APPROVAL_REQUIRES_REVIEW/);
+  item = await rpc("cms_transition_post", [item.id, "review", item.version]);
+  const approved = await rpc("cms_transition_post", [
+    item.id,
+    "approve",
+    item.version,
+  ]);
+  expect(approved).toMatchObject({
+    status: "review",
+    version: item.version,
+    approved_version: item.version,
+    approved_by: owner,
+  });
+  expect(
+    await rpc("cms_transition_post", [item.id, "approve", item.version]),
+  ).toEqual(approved);
+  expect(
+    (
+      await db.query<{ count: number }>(
+        "select count(*)::int as count from audit_logs where action='post_approved' and entity_id=$1",
+        [item.id],
+      )
+    ).rows[0].count,
+  ).toBe(1);
+  const listed = await db.query<{ data: { rows: { id: string }[] } }>(
+    "select public.admin_post_list_filtered(1,'','approved','{}'::jsonb) data",
+  );
+  expect(listed.rows[0].data.rows.some((row) => row.id === item.id)).toBe(true);
+  item = await rpc("cms_save_post", [
+    item.id,
+    { title: "نسخة معدلة بعد الاعتماد" },
+    item.version,
+  ]);
+  expect(item.version).toBeGreaterThan(
+    (approved as typeof approved & { approved_version: number })
+      .approved_version,
+  );
+  const staleList = await db.query<{ data: { rows: { id: string }[] } }>(
+    "select public.admin_post_list_filtered(1,'','approved','{}'::jsonb) data",
+  );
+  expect(staleList.rows[0].data.rows.some((row) => row.id === item.id)).toBe(
+    false,
+  );
+  await expect(
+    rpc("cms_transition_post", [item.id, "approve", approved.version]),
+  ).rejects.toThrow(/VERSION_CONFLICT/);
+  const renewed = await rpc("cms_transition_post", [
+    item.id,
+    "approve",
+    item.version,
+  ]);
+  expect(renewed).toMatchObject({
+    approved_version: item.version,
+    status: "review",
+  });
+  await actor(other);
+  await expect(
+    db.query("update public.posts set approved_version=version where id=$1", [
+      item.id,
+    ]),
+  ).rejects.toThrow();
+  await actor(owner);
+});
+it("static page drafts remain private; saves are versioned, audited and never grant author authority", async () => {
+  const patch = {
+    slug: "testing-page",
+    title: "صفحة الثقافة",
+    description: "وصف الاختبار",
+    content_json: {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "محتوى الصفحة" }],
+        },
+      ],
+    },
+    is_published: false,
+  };
+  await actor(author);
+  await expect(rpc("cms_save_page", [null, patch])).rejects.toThrow(
+    /FORBIDDEN/,
+  );
+  await actor(owner);
+  await expect(rpc("cms_save_page", [null, patch])).rejects.toThrow(
+    /PIN_SETUP_REQUIRED/,
+  );
+  await db.exec("reset role");
+  await db.query("select public.security_save_pin($1,$2,600,true)", [
+    owner,
+    "scrypt-v1$" + "0".repeat(32) + "$" + "0".repeat(128),
+  ]);
+  await db.query("select public.security_create_proof($1,$1,$2,true)", [
+    owner,
+    "a".repeat(64),
+  ]);
+  await actor(owner);
+  await db.query("select set_config('request.headers',$1,false)", [
+    JSON.stringify({ "x-maystroon-proof": "a".repeat(64) }),
+  ]);
+  let item = await rpc("cms_save_page", [null, patch]);
+  await db.exec("set role anon");
+  expect(
+    (
+      await db.query(
+        "select id,slug,content_json from site_pages where slug='testing-page'",
+      )
+    ).rows,
+  ).toEqual([]);
+  await expect(db.query("select updated_by from site_pages")).rejects.toThrow(
+    /permission denied/,
+  );
+  await actor(owner);
+  const published = await rpc("cms_save_page", [
+    item.id,
+    { ...patch, is_published: true },
+    item.version,
+  ]);
+  await expect(
+    rpc("cms_save_page", [item.id, patch, item.version]),
+  ).rejects.toThrow(/VERSION_CONFLICT/);
+  await expect(
+    rpc("cms_save_page", [
+      item.id,
+      { ...patch, slug: "moved-page" },
+      published.version,
+    ]),
+  ).rejects.toThrow(/SLUG_RESERVED/);
+  await db.exec("set role anon");
+  expect(
+    (await db.query("select title from site_pages where slug='testing-page'"))
+      .rows,
+  ).toEqual([{ title: "صفحة الثقافة" }]);
+  await actor(owner);
+  item = await rpc("cms_save_page", [item.id, patch, published.version]);
+  expect(item.version).toBe(published.version + 1);
+  expect(
+    (
+      await db.query<{ count: number }>(
+        "select count(*)::int count from audit_logs where action='PAGE_SAVED' and entity_id=$1",
+        [item.id],
+      )
+    ).rows[0].count,
+  ).toBe(3);
+  await expect(
+    rpc("cms_save_page", [null, { ...patch, slug: "../admin" }]),
+  ).rejects.toThrow();
+  await expect(
+    rpc("cms_save_page", [
+      null,
+      { ...patch, slug: "invalid-doc", content_json: { type: "evil" } },
+    ]),
+  ).rejects.toThrow();
+  await actor(author);
+  expect(
+    (await db.query("select id from site_pages where slug='testing-page'"))
+      .rows,
+  ).toEqual([]);
+  await actor(owner);
+  const arabic = await rpc("cms_save_page", [
+    null,
+    { ...patch, slug: "سياسة-التحرير" },
+  ]);
+  expect(arabic).toMatchObject({ slug: "سياسة-التحرير" });
 });

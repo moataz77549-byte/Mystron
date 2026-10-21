@@ -2,6 +2,7 @@ import { z } from "zod";
 export const postStates = [
   "draft",
   "review",
+  "approved",
   "scheduled",
   "published",
   "unpublished",
@@ -11,6 +12,7 @@ export const postStates = [
 export const postLabels: Record<string, string> = {
   draft: "مسودة",
   review: "قيد المراجعة",
+  approved: "معتمد تحريرياً",
   scheduled: "مجدولة",
   published: "منشورة",
   unpublished: "غير منشورة",

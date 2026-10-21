@@ -56,6 +56,7 @@ export async function POST(
       "INVALID_SCHEDULE",
       "INVALID_INPUT",
       "INVALID_OPERATION",
+      "APPROVAL_REQUIRES_REVIEW",
     ];
     const code = known.find((c) => message.includes(c)) || "INVALID_OPERATION";
     return failure(

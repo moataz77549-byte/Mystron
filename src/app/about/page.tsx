@@ -1,8 +1,21 @@
-export const metadata = {
-  title: "حول ما يسطرون",
-  alternates: { canonical: "/about" },
-};
-export default function About() {
+import { publishedPage } from "@/lib/editorial/site-pages";
+import { SitePageContent } from "@/components/site-page";
+export async function generateMetadata() {
+  const page = await publishedPage("about");
+  return {
+    title: page?.title || "حول ما يسطرون",
+    description: page?.description,
+    alternates: { canonical: "/about" },
+    openGraph: {
+      title: page?.title || "حول ما يسطرون",
+      description: page?.description,
+      url: "/about",
+    },
+  };
+}
+export default async function About() {
+  const page = await publishedPage("about");
+  if (page) return <SitePageContent page={page} />;
   return (
     <article className="prose">
       <span className="eyebrow">عن المنصة</span>

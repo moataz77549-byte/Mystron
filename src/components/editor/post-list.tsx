@@ -17,6 +17,7 @@ type Row = {
   slug: string;
   status: string;
   version: number;
+  approved_version?: number | null;
   deleted_at: string | null;
   updated_at: string;
   author_name?: string;
@@ -31,6 +32,7 @@ type Row = {
 };
 type Choice = { id: string; name: string };
 const actionLabels: Record<string, string> = {
+  approve: "اعتماد النسخة",
   review: "إرسال للمراجعة",
   publish: "نشر",
   unpublished: "إلغاء النشر",
@@ -40,7 +42,7 @@ const actionLabels: Record<string, string> = {
   duplicate: "نسخ إلى مسودة",
 };
 function mayAct(row: Row, action: string) {
-  return ["publish", "unpublished", "archived"].includes(action)
+  return ["approve", "publish", "unpublished", "archived"].includes(action)
     ? !!row.can_publish
     : ["delete", "restore"].includes(action)
       ? !!row.can_delete
@@ -389,8 +391,14 @@ export default function PostList({
                     <span
                       className={`status-badge status-${row.deleted_at ? "trash" : row.status}`}
                     >
-                      {postLabels[row.deleted_at ? "trash" : row.status] ||
-                        row.status}
+                      {postLabels[
+                        row.deleted_at
+                          ? "trash"
+                          : row.status === "review" &&
+                              row.approved_version === row.version
+                            ? "approved"
+                            : row.status
+                      ] || row.status}
                     </span>
                   </td>
                   <td data-label="آخر تعديل">
@@ -422,6 +430,10 @@ export default function PostList({
                           : [
                               "duplicate",
                               "review",
+                              ...(row.status === "review" &&
+                              row.approved_version !== row.version
+                                ? ["approve"]
+                                : []),
                               ...(row.status === "published"
                                 ? ["unpublished"]
                                 : ["publish"]),
