@@ -18,7 +18,7 @@
 | npm run security:client  | PASS                                                        |
 | npm run test:e2e         | PASS — 8 اختبارات؛ 4 اختبارات hosted smoke مشروطة لم تُشغّل |
 | npm run test:cms         | PASS — 24 اختباراً                                          |
-| Python lint/format/tests | PASS — 12 اختباراً في CI 39530226642؛ العامل لم يتغير       |
+| Python lint/format/tests | PASS — 12 اختباراً في CI 39598472957                        |
 
 مرجع CI السابق الناجح للدفعة الأولى: [39501495214](https://github.com/moataz77549-byte/Mystron/actions/runs/39501495214). الفحوص الخاصة بأحدث نسخة موجودة في [PR #4 checks](https://github.com/moataz77549-byte/Mystron/pull/4/checks). لا تُنسب نتائج commit قديم تلقائياً إلى نسخة أحدث.
 
@@ -56,3 +56,11 @@
 أظهر اختبار الصفحات سلوك notFound الموثق في Next.js: قد يبقى HTTP 200 بعد بدء البث مع noindex وواجهة عدم وجود الصفحة. لذلك تتحقق اختبارات الخصوصية من noindex وغياب عنوان المسودة ونصها فعلياً، مع قبول 200 أو 404 وفق مرحلة البث؛ لا يكفي اختبار كود HTTP وحده.
 
 اختبارات الترحيل المرحلي تغطي مخطط الكتالوج القديم والجديد عبر Supabase HTTP client الحقيقي مع استجابات محلية، وتثبت عدم إخفاء أخطاء الصلاحية أو الأعمدة غير المرتبطة. فشل إعادة اختبار الواجهة العامة أولاً بسبب إعادة استخدام بناء CMS ذي إعدادات fixture بعد إيقاف خادمه؛ أُعيد البناء بالإعدادات العامة وأُعيدت الحزمة بنجاح، دون تغيير اختبارات الأساس.
+
+## أدلة التسليم المتحقق منها
+
+النسخة البرمجية 39913b6dede35602228f457c7bb4dd16537c6426 نجحت في [CI طلب الدمج](https://github.com/moataz77549-byte/Mystron/actions/runs/39598472957) و[CI الفرع](https://github.com/moataz77549-byte/Mystron/actions/runs/39598468086). سجلات الوظائف تؤكد 160 اختباراً في 24 ملفاً، و24 CMS، و8 عامة مع 4 غير منفذة، و12 Python، مع نجاح جميع الفحوص الأخرى المطلوبة.
+
+[أدلة المتصفح](https://github.com/moataz77549-byte/Mystron/actions/runs/39598472957/artifacts/12345436110) محفوظة بمدة الاحتفاظ المحددة في CI. [معاينة النسخة](https://mystron-51oxleaf0-moataz77549-bytes-projects.vercel.app/admin/login) داخل mystron بحالة READY، وأعاد فحص صفحة الدخول HTTP 200 مع الواجهة العربية. Preview لا يثبت قبول قاعدة مستضافة.
+
+رفض Supabase إنشاء فرع admin-editorial-acceptance برسالة «Branching is supported only on the Pro plan or above». لم يُنشأ الفرع ولم تُعدل بيانات الإنتاج. لا يصح إعلان حالات القبول المستضاف المنصوص عليها مكتملة.
