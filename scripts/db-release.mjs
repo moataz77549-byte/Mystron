@@ -198,7 +198,7 @@ async function snapshot(query, shape) {
     const filter =
       t.table_schema === "storage" &&
       (t.table_name === "buckets" || t.columns.includes("bucket_id"))
-        ? ` where ${t.table_name === "buckets" ? "id" : "bucket_id"} <> ${literal(BUCKET)}`
+        ? ` where ${t.table_name === "buckets" ? "id" : "bucket_id"} is distinct from ${literal(BUCKET)}`
         : "";
     const rows = await query(
       `select coalesce(json_agg(hash order by hash),'[]'::json) hashes,count(*)::int count from (select md5(row_to_json(t)::text) hash from (select ${t.columns.map(ident).join(",")} from ${ident(t.table_schema)}.${ident(t.table_name)}${filter}) t) hashed`,
@@ -547,10 +547,7 @@ async function prepareLocal(empty = false) {
     ],
     { stdio: "ignore" },
   );
-  assert(
-    escape.status !== 0 && escape.status !== null,
-    "Docker egress isolation failed",
-  );
+  assert([1, 124].includes(escape.status), "Docker egress isolation failed");
   // Restored cron payloads must never execute, even without external network access.
   run("docker", [
     "exec",
@@ -582,6 +579,18 @@ async function prepareLocal(empty = false) {
     "-c",
     "select pg_reload_conf()",
   ]);
+  let cronDisabled = false;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    cronDisabled = localQuery(
+      "select current_setting('cron.launch_active_jobs')='off' disabled",
+    )[0].disabled;
+    if (cronDisabled) break;
+    await new Promise((done) => setTimeout(done, 100));
+  }
+  assert(
+    cronDisabled,
+    "Restored cron jobs must be disabled before data import",
+  );
 }
 async function localAcceptance() {
   checkLedger(localQuery(ledgerSQL), await files(), 49);
@@ -589,7 +598,7 @@ async function localAcceptance() {
   console.log(
     "Local baseline ledger verified: 49. Applying the six-file allowlist.",
   );
-  for (const f of PENDING)
+  for (const f of await files())
     await copyFile(
       join(root, "supabase/migrations", f),
       join(local, "supabase/migrations", f),
@@ -801,7 +810,7 @@ async function backupAndTest() {
   const storageManifest = await inventoryStorage(join(backup, "objects"));
   const metadataCount = (
     await remoteQuery(
-      `select count(*)::int n from storage.objects where bucket_id <> '${BUCKET}'`,
+      `select count(*)::int n from storage.objects where bucket_id is distinct from '${BUCKET}'`,
     )
   )[0].n;
   assert(

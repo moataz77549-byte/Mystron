@@ -118,6 +118,12 @@ export async function dockerBrowser(status, grantUser) {
   });
   if (build.status !== 0)
     throw Error("Local Next.js build failed; output withheld");
+  const boundary = spawnSync("npm", ["run", "security:client"], {
+    env,
+    encoding: "utf8",
+  });
+  if (boundary.status !== 0)
+    throw Error("Local browser secret boundary check failed");
   const server = spawn(
     "npm",
     ["run", "start", "--", "--hostname", "127.0.0.1"],
@@ -136,7 +142,10 @@ export async function dockerBrowser(status, grantUser) {
       await new Promise((done) => setTimeout(done, 1000));
     }
     if (!ready) throw Error("Local Next.js server not ready");
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({
+      headless: true,
+      env: { PATH: process.env.PATH, HOME: process.env.HOME },
+    });
     const context = await browser.newContext({
       baseURL: "http://127.0.0.1:3000",
     });
