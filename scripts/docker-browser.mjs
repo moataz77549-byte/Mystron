@@ -49,8 +49,21 @@ export async function verifyLocalBackupLogin(status, credentials) {
   const auth = createClient(status.API_URL, status.ANON_KEY, {
     auth: { persistSession: false },
   });
-  if ((await auth.auth.signInWithPassword(credentials)).error)
-    throw Error("Restored local Auth password verification failed");
+  const signedIn = await auth.auth.signInWithPassword(credentials);
+  if (signedIn.error)
+    throw Error(
+      `Restored local Auth password verification failed (${signedIn.error.status || 0}/${signedIn.error.code || "transport"})`,
+    );
+  const identity = await auth.rpc("admin_identity");
+  if (identity.error || identity.data?.active)
+    throw Error("Unprivileged restored account unexpectedly became an admin");
+  const denied = await auth.rpc("cms_save_post", {
+    p_id: null,
+    p_patch: { title: "must refuse" },
+    p_expected_version: null,
+  });
+  if (!denied.error)
+    throw Error("Unprivileged restored account could write a post");
   await auth.auth.signOut();
 }
 

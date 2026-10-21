@@ -903,7 +903,10 @@ async function main() {
     );
     await restoreDatabase(captured);
     await restoreStorage(storageManifest);
-    await verifyLocalBackupLogin(status, credentials);
+    const restoredStatus = JSON.parse(
+      supa("status", "--workdir", local, "-o", "json"),
+    );
+    await verifyLocalBackupLogin(restoredStatus, credentials);
     console.log(
       "Disposable baseline backup restore and row fingerprints verified.",
     );

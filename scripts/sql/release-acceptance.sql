@@ -43,6 +43,19 @@ do $$ declare a public.authors;c public.categories;p public.posts;page public.si
  if (public.admin_my_sessions()->>'total')::int<>1 then raise exception 'Session list failed';end if;
 end $$;
 reset role;
+insert into public.comments(id,post_id,body,status) select 'b0000000-0000-4000-8000-000000000001',id,'تعليق تحقق البلاغات','approved' from public.posts where slug='release-local-post';
+insert into public.comment_reports(id,comment_id,reason,visitor_hash) values('b0000000-0000-4000-8000-000000000002','b0000000-0000-4000-8000-000000000001','بلاغ تحقق محلي',repeat('a',64));
+set local role authenticated;
+do $$ begin
+ perform public.cms_resolve_report('b0000000-0000-4000-8000-000000000002','hidden');
+ if not exists(select 1 from jsonb_array_elements(public.admin_report_list(1,'resolved')->'rows') r where r->>'id'='b0000000-0000-4000-8000-000000000002' and r->>'resolution'='hidden' and r->>'comment_status'='hidden') then raise exception 'Report moderation failed';end if;
+end $$;
+reset role;
+update auth.sessions set not_after=now()-interval '1 second' where id='a0000000-0000-4000-8000-000000000002';
+set local role authenticated;
+do $$ begin if (public.admin_identity()->>'active')::boolean then raise exception 'Expired session accepted';end if;end $$;
+reset role;
+update auth.sessions set not_after=null where id='a0000000-0000-4000-8000-000000000002';
 update public.admin_memberships set enabled=false where user_id='a0000000-0000-4000-8000-000000000001';
 set local role authenticated;
 do $$ begin
