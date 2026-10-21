@@ -59,6 +59,12 @@ metadata, post saves and stale-version rejection, tag merging, review/approval,
 publishing, unpublishing, scheduling/cancellation, and versioned static pages.
 Test rows are rolled back. The same job then builds Next.js with local-only credentials and runs Chromium against real local Auth, Storage and PostgreSQL: login, session listing, catalog forms, editor save/reload/publish, tags/reports access, static page saves, origin/access denial, and five screen widths. These are isolated tests and do not constitute hosted production acceptance.
 
+Before applying the six files, the secret-free job also rehearses CLI dump/restore
+on its disposable baseline, including an actual Auth account/password and a Storage
+object. Its destructive reset has both `--local` and an isolated temporary workdir;
+the production path never calls reset. This rehearsal validates the tooling, and
+does **not** replace the separate production-backup restore gate.
+
 The protected backup job links CLI 2.120.0 to the fixed project using environment
 secrets, reads the 49-entry ledger, and verifies all public tables retain RLS. It
 exports roles, schema, data (COPY), and the migration ledger, and downloads the
@@ -66,6 +72,13 @@ actual bytes of every registered Storage object. It checks metadata/object inven
 counts and database row fingerprints before and after backup. Concurrent writes
 cause a stop; arrange a quiet maintenance window and rerun rather than accepting
 an inconsistent backup.
+
+Cron job definitions and available execution history are included in the encrypted
+dump. Row comparisons exclude Auth/Storage's service-owned migration bookkeeping
+and volatile Cron execution history, while retaining all application/user data and
+Cron definitions. The actual application migration ledger is explicitly backed up,
+restored and compared. Vault currently has zero secrets; if that changes, preflight
+stops and requires a separate verified Vault-key recovery procedure.
 
 The archive is encrypted with AES-256-GCM and a fresh random nonce. Ciphertext is
 split into 16 MiB parts and stored in a private bucket named

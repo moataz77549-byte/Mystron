@@ -18,6 +18,15 @@ export async function seedLocalBackup(status) {
   });
   if (!health.ok)
     throw Error("Local Auth health check failed: " + health.status);
+  const anonymous = createClient(status.API_URL, status.ANON_KEY, {
+    auth: { persistSession: false },
+  });
+  const signup = await anonymous.auth.signUp({
+    email: "signup-must-refuse@example.test",
+    password: randomBytes(24).toString("base64url"),
+  });
+  if (signup.error?.code !== "signup_disabled")
+    throw Error("Disposable configuration must keep public signup disabled");
   const email = "backup-local@example.test",
     password = randomBytes(24).toString("base64url");
   const admin = createClient(status.API_URL, status.SERVICE_ROLE_KEY, {

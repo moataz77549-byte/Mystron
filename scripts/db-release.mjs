@@ -499,9 +499,15 @@ async function prepareLocal(empty = false) {
     recursive: true,
     mode: 0o700,
   });
-  const config = (
-    await readFile(join(root, "supabase/config.toml"), "utf8")
-  ).replace('project_id = "Maystroon"', 'project_id = "MaystroonRelease"');
+  const config = (await readFile(join(root, "supabase/config.toml"), "utf8"))
+    .replace('project_id = "Maystroon"', 'project_id = "MaystroonRelease"')
+    // CLI maps the email-level flag to provider availability. Enable existing-
+    // account password login ONLY in the disposable configuration. The global
+    // auth.enable_signup=false continues to reject public registration.
+    .replace(
+      /(\[auth\.email\][\s\S]*?)enable_signup = false/,
+      "$1enable_signup = true",
+    );
   await writeFile(join(local, "supabase/config.toml"), config);
   if (!empty)
     for (const f of (await files()).slice(0, 49))
@@ -579,6 +585,7 @@ async function prepareLocal(empty = false) {
 }
 async function localAcceptance() {
   checkLedger(localQuery(ledgerSQL), await files(), 49);
+  const retained = await snapshot(localQuery);
   console.log(
     "Local baseline ledger verified: 49. Applying the six-file allowlist.",
   );
@@ -590,6 +597,7 @@ async function localAcceptance() {
   checkDryRun(dryRun("--local", "--workdir", local));
   supa("db", "push", "--local", "--workdir", local, "--skip-vault", "--yes");
   checkLedger(localQuery(ledgerSQL), await files(), 55);
+  compareSnapshot(retained, await snapshot(localQuery, retained), true);
   run(
     "docker",
     [
