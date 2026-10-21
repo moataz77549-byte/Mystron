@@ -275,6 +275,13 @@ export async function cmsCommand(resource: string, raw: unknown) {
   } else throw new Error("NOT_FOUND");
   const { data, error } = await identity.db.rpc(rpc, args);
   if (error) {
+    if (
+      (resource === "categories" || resource === "authors") &&
+      error.message.includes("UNKNOWN_FIELD") &&
+      ((b.patch as Record<string, unknown>)?.color !== undefined ||
+        (b.patch as Record<string, unknown>)?.specialty !== undefined)
+    )
+      throw new Error("SCHEMA_UPDATE_REQUIRED");
     const known = [
       "PIN_SETUP_REQUIRED",
       "PIN_VERIFICATION_REQUIRED",

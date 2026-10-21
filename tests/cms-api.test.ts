@@ -224,3 +224,18 @@ it("static page writes reject unknown fields and invalid document nodes", async 
     expect.objectContaining({ p_id: null, p_patch: patch }),
   );
 });
+it("never silently discards catalog metadata when the schema is not migrated", async () => {
+  state.signedIn = true;
+  state.rpc.mockResolvedValue({
+    data: null,
+    error: { message: "UNKNOWN_FIELD" },
+  });
+  const response = await POST(
+    req({ patch: { name: "قسم", slug: "category", color: "#267E81" } }),
+    { params: Promise.resolve({ resource: "categories" }) },
+  );
+  expect(response.status).toBe(503);
+  expect(await response.json()).toEqual({
+    error: { code: "SCHEMA_UPDATE_REQUIRED" },
+  });
+});

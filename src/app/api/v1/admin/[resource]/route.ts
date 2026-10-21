@@ -55,6 +55,7 @@ export async function POST(
       "PUBLICATION_INCOMPLETE",
       "INVALID_SCHEDULE",
       "INVALID_INPUT",
+      "SCHEMA_UPDATE_REQUIRED",
       "INVALID_OPERATION",
       "APPROVAL_REQUIRES_REVIEW",
     ];
@@ -63,11 +64,13 @@ export async function POST(
       code,
       ["UNAUTHORIZED"].includes(code)
         ? 401
-        : code === "FORBIDDEN"
-          ? 403
-          : code === "VERSION_CONFLICT"
-            ? 409
-            : 400,
+        : code === "SCHEMA_UPDATE_REQUIRED"
+          ? 503
+          : code === "FORBIDDEN"
+            ? 403
+            : code === "VERSION_CONFLICT"
+              ? 409
+              : 400,
     );
   }
 }

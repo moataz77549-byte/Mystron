@@ -1,10 +1,10 @@
 # تدقيق إدارة ما يسطرون — 2026-10-21
 
-المستودع: moataz77549-byte/Mystron. الفرع: fix-admin-editorial-publishing-overhaul. التسليم: [PR #3](https://github.com/moataz77549-byte/Mystron/pull/3).
+المستودع: moataz77549-byte/Mystron. الفرع: fix-admin-editorial-publishing-overhaul. التسليم: [PR #4](https://github.com/moataz77549-byte/Mystron/pull/4).
 
 ## الحالة الفعلية
 
-PR #1 وPR #2 دُمجا قبل هذه المتابعة. شجرة main عند البداية مطابقة لشجرة فرع الإصلاح القديم؛ حُفظت الإصلاحات والتاريخ دون force push. لا مستودع أو قاعدة بيانات أو محرر أو محرك نشر بديل.
+PR #1 وPR #2 دُمجا قبل هذه المتابعة؛ دُمج PR #3 لاحقاً في main عند 2026-10-21 12:07 UTC، ثم فُتح PR #4 للإضافات التالية على الفرع نفسه. شجرة main عند البداية مطابقة لشجرة فرع الإصلاح القديم؛ حُفظت الإصلاحات والتاريخ دون force push. لا مستودع أو قاعدة بيانات أو محرر أو محرك نشر بديل.
 
 الفحص الحي قراءةً فقط بتاريخ هذا التقرير: مستخدم Auth واحد، صفر مقالات، 49 migration مطبقة، أربعة Cron فعالة، وصفر جداول عامة بلا RLS. AI معطل. فحص صحة الموقع أعاد HTTP 200 وdatabase=ready وapi=configured. Railway telegram-bot Online/SUCCESS بنسخة عاملة واحدة دون تغييرات معلقة.
 
@@ -37,6 +37,6 @@ PR #1 وPR #2 دُمجا قبل هذه المتابعة. شجرة main عند ا
 | القراءة العامة وSEO           | WORKING           | المسار الحالي محفوظ؛ لا نتائج Lighthouse أو مؤشرات أداء مختلقة.                                     |
 | AI                            | WORKING           | معطل في الإنتاج؛ مزود الاختبارات محلي فقط.                                                          |
 | الأمان الشامل                 | NEEDS IMPROVEMENT | لا RLS معطل؛ تبقى مراجعة تحذيرات Supabase وتبعيات التطوير.                                          |
-| GitHub وPreview               | WORKING           | PR #3 وPreview داخل mystron الصحيح؛ الإنتاج لم يُستبدل.                                             |
+| GitHub وPreview               | WORKING           | PR #4 وPreview داخل mystron الصحيح؛ لا ترقية إنتاجية للإضافات الجديدة بهذه المتابعة.                |
 
 WORKING يعني تنفيذ الوظيفة المحددة ودليل اختبار معزول؛ لا يعني اكتمال كل تفصيل مطلوب أو قبول الإنتاج كاملاً. تفاصيل الاختبارات والاستثناءات في ADMIN_OVERHAUL_TEST_REPORT.md.
