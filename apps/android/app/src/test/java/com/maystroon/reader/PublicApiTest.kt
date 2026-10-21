@@ -10,6 +10,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PublicApiTest {
+    @Test fun `decodes the shared server contract fixture`() {
+        val fixture = requireNotNull(javaClass.classLoader?.getResource("public-reader-page.json")).readText()
+        val page = ApiFactory.json.decodeFromString<PostPage>(fixture)
+        assertEquals("اختبار-العقد", page.data.single().slug)
+        assertEquals("كاتب الاختبار", page.data.single().authors?.display_name)
+        assertEquals("نص الاقتباس", page.data.single().content_json!!.content[2].attr("quote"))
+    }
     @Test fun `public DTO tolerates additional fields and preserves editorial nodes`() {
         val json = """{"data":[{"id":"p","title":"قصيدة عربية","slug":"قصيدة","authors":{"display_name":"شاعر","slug":"شاعر"},"seo_title":"عنوان","content_json":{"type":"doc","content":[{"type":"poetryVerse","attrs":{"first":"الشطر الأول","second":"الشطر الثاني","size":"large"}},{"type":"futureNode","attrs":{"opaque":"retained"},"content":[{"type":"text","text":"نص"}]}]}}],"total":1,"page":1,"pageSize":20}"""
         val page = ApiFactory.json.decodeFromString<PostPage>(json)

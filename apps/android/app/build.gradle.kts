@@ -31,6 +31,7 @@ android {
     buildFeatures { compose = true; buildConfig = true }
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
     testOptions { unitTests.isReturnDefaultValues = true }
+    sourceSets.getByName("test").resources.srcDir("../../../packages/contracts/fixtures")
 }
 ksp { arg("room.schemaLocation", "$projectDir/schemas") }
 dependencies {

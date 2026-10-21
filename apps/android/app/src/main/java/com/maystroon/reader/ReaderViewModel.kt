@@ -21,6 +21,7 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
     private var filterCategory: String? = null
     private var filterQuery: String? = null
     private var filterAuthor: String? = null
+    private val feeds = mutableMapOf<List<String?>, FeedState>()
     private val _feed = MutableStateFlow(FeedState())
     val feed = _feed.asStateFlow()
     private val _article = MutableStateFlow(ArticleState())
@@ -48,8 +49,18 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
         catch (e: Exception) { if (e is CancellationException) throw e; _notice.value = error(e) }
     } }
     fun filter(category: String? = null, query: String? = null, author: String? = null) {
-        filterCategory = category; filterQuery = query?.trim()?.take(100)?.ifEmpty { null }; filterAuthor = author
-        refresh()
+        val nextQuery = query?.trim()?.take(100)?.ifEmpty { null }
+        val oldKey = listOf(filterCategory, filterQuery, filterAuthor)
+        val nextKey = listOf(category, nextQuery, author)
+        if (oldKey == nextKey) {
+            if (_feed.value.page == 0 && !_feed.value.loading) refresh()
+            return
+        }
+        feeds[oldKey] = _feed.value.copy(loading = false)
+        feedJob?.cancel()
+        filterCategory = category; filterQuery = nextQuery; filterAuthor = author
+        val cached = feeds[nextKey]
+        if (cached != null && cached.page > 0) _feed.value = cached else refresh()
     }
     fun refresh() {
         feedJob?.cancel()

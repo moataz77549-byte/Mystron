@@ -1,0 +1,376 @@
+openapi: 3.1.0
+info:
+  title: MAYSTROON v1 API
+  version: 1.0.0-rc.1
+  description: |
+    © معتز العلقمي — اليمن، تعز — 2026م
+    Public reader contracts implemented in this branch. Administrative cookie APIs
+    remain available to the website; native bearer administration and submissions
+    are not yet implemented. Do not infer support for an undocumented operation.
+servers:
+  - url: https://mystron-henna.vercel.app/api/v1
+security: []
+paths:
+  /posts:
+    get:
+      operationId: listPosts
+      summary: Published, public, non-deleted articles whose publication time has arrived
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: author
+          in: query
+          schema: { type: string }
+        - name: q
+          in: query
+          schema: { type: string, maxLength: 100 }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [newest, oldest], default: newest }
+      responses:
+        "200":
+          description: Real page; an empty database returns data=[] and total=0
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PostPage" }
+        "400": { $ref: "#/components/responses/InvalidQuery" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+  /search:
+    get:
+      operationId: searchPosts
+      summary: Same public query service and response as GET /posts; Arabic normalization on server
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: q
+          in: query
+          schema: { type: string, maxLength: 100 }
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PostPage" }
+        "400": { $ref: "#/components/responses/InvalidQuery" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+  /posts/{slug}:
+    parameters: [{ $ref: "#/components/parameters/Slug" }]
+    get:
+      operationId: getPost
+      responses:
+        "200":
+          description: Available published article
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: "#/components/schemas/Post" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+  /posts/{slug}/related:
+    parameters: [{ $ref: "#/components/parameters/Slug" }]
+    get:
+      operationId: relatedPosts
+      summary: Up to six public articles by the same author; excludes the current article
+      responses:
+        "200":
+          description: Related articles; latest public articles when no author is assigned
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    {
+                      type: array,
+                      maxItems: 6,
+                      items: { $ref: "#/components/schemas/Post" },
+                    }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+  /categories:
+    get:
+      operationId: listCategories
+      responses:
+        "200":
+          description: Active non-deleted categories ordered by sort_order
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    {
+                      type: array,
+                      items: { $ref: "#/components/schemas/Category" },
+                    }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+  /categories/{slug}:
+    parameters: [{ $ref: "#/components/parameters/Slug" }]
+    get:
+      operationId: getCategory
+      responses:
+        "200":
+          description: Active category
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: "#/components/schemas/Category" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+  /authors:
+    get:
+      operationId: listAuthors
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Active author profiles; includes page/pageSize but no total field
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, page, pageSize]
+                properties:
+                  data:
+                    {
+                      type: array,
+                      items: { $ref: "#/components/schemas/Author" },
+                    }
+                  page: { type: integer, minimum: 1 }
+                  pageSize: { type: integer, minimum: 1, maximum: 50 }
+        "400": { $ref: "#/components/responses/InvalidQuery" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+  /authors/{slug}/posts:
+    parameters: [{ $ref: "#/components/parameters/Slug" }]
+    get:
+      operationId: authorPosts
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Public article page filtered by the author in the path
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PostPage" }
+        "400": { $ref: "#/components/responses/InvalidQuery" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+  /home:
+    get:
+      operationId: home
+      responses:
+        "200":
+          description: Existing home service, featured article and most read articles
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required:
+                      [categories, posts, ticker, state, featured, popular]
+                    properties:
+                      categories:
+                        {
+                          type: array,
+                          items: { $ref: "#/components/schemas/Category" },
+                        }
+                      posts:
+                        {
+                          type: array,
+                          items: { $ref: "#/components/schemas/Post" },
+                        }
+                      featured:
+                        {
+                          anyOf:
+                            [
+                              { $ref: "#/components/schemas/Post" },
+                              { type: "null" },
+                            ],
+                        }
+                      popular:
+                        {
+                          type: array,
+                          items: { $ref: "#/components/schemas/Post" },
+                        }
+                      ticker: { type: array, items: { type: object } }
+                      state: { type: string, const: ready }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+  /site/navigation:
+    get:
+      operationId: publicNavigation
+      responses:
+        "200":
+          description: Public menu items; existing service filters unsafe links
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        [id, parent_id, location, label, href, sort_order]
+                      properties:
+                        id: { type: string, format: uuid }
+                        parent_id: { type: [string, "null"], format: uuid }
+                        location: { type: string }
+                        label: { type: string }
+                        href: { type: string }
+                        sort_order: { type: integer }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+components:
+  securitySchemes:
+    WebSession:
+      type: apiKey
+      in: cookie
+      name: sb-ttvasynaxkkcwrmvlorg-auth-token
+      description: Supabase SSR session cookie (may be chunked); browser writes also require same-origin and sensitive operations require PIN proof. No administrative bearer transport is available in this reader slice.
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 10000, default: 1 }
+    PageSize:
+      name: pageSize
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 50, default: 12 }
+    Slug:
+      name: slug
+      in: path
+      required: true
+      schema: { type: string }
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code]
+          properties:
+            code: { type: string }
+      example: { error: { code: RATE_LIMITED } }
+    Author:
+      type: object
+      required: [display_name, slug]
+      properties:
+        display_name: { type: string }
+        slug: { type: string }
+        bio: { type: [string, "null"] }
+      x-kotlin-type: com.maystroon.reader.core.Author
+    Category:
+      type: object
+      required: [id, name, slug]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        description: { type: [string, "null"] }
+      x-kotlin-type: com.maystroon.reader.core.Category
+    RichNode:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string }
+        text: { type: string }
+        attrs: { type: object, additionalProperties: true }
+        marks:
+          type: array
+          items:
+            type: object
+            required: [type]
+            properties:
+              type: { type: string }
+              attrs: { type: object, additionalProperties: true }
+        content:
+          { type: array, items: { $ref: "#/components/schemas/RichNode" } }
+      x-kotlin-type: com.maystroon.reader.core.RichNode
+    Post:
+      type: object
+      required: [id, title, slug, authors, featured, tags, sources]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        slug: { type: string }
+        excerpt: { type: [string, "null"] }
+        subtitle: { type: [string, "null"] }
+        content: { type: [string, "null"] }
+        content_json:
+          {
+            anyOf:
+              [{ $ref: "#/components/schemas/RichNode" }, { type: "null" }],
+          }
+        cover_image: { type: [string, "null"] }
+        cover_asset_id: { type: [string, "null"], format: uuid }
+        thumbnail_asset_id: { type: [string, "null"], format: uuid }
+        published_at: { type: [string, "null"], format: date-time }
+        reading_minutes: { type: [integer, "null"] }
+        authors:
+          { anyOf: [{ $ref: "#/components/schemas/Author" }, { type: "null" }] }
+        featured: { type: boolean }
+        tags: { type: array, items: { type: string } }
+        sources:
+          { type: array, items: { type: object, additionalProperties: true } }
+      x-kotlin-type: com.maystroon.reader.core.Post
+    PostPage:
+      type: object
+      required: [data, total, page, pageSize]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/Post" } }
+        total: { type: integer, minimum: 0 }
+        page: { type: integer, minimum: 1 }
+        pageSize: { type: integer, minimum: 1, maximum: 50 }
+      example: { data: [], total: 0, page: 1, pageSize: 12 }
+      x-kotlin-type: com.maystroon.reader.core.PostPage
+  responses:
+    InvalidQuery:
+      description: Invalid query; safe error code INVALID_QUERY
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Content is missing, withdrawn, hidden or not yet published
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    RateLimited:
+      description: Public request limit exceeded; IP limiter is shared with the existing web API
+      headers:
+        Retry-After:
+          { schema: { type: integer }, description: Wait duration in seconds }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unavailable:
+      description: Database unconfigured or service temporarily unavailable; no exception details
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
