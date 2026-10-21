@@ -173,7 +173,7 @@ function localQuery(sql) {
     "psql",
     "-X",
     "-U",
-    "postgres",
+    "supabase_admin",
     "-d",
     "postgres",
     "-v",
@@ -190,7 +190,7 @@ async function snapshot(query, shape) {
   const tables =
     shape ||
     (await query(
-      "select table_schema,table_name,array_agg(column_name order by ordinal_position) columns from information_schema.columns where table_schema in ('public','private','auth','storage') and (table_schema,table_name) in (select schemaname,tablename from pg_tables) group by table_schema,table_name order by table_schema,table_name",
+      "select table_schema,table_name,array_agg(column_name order by ordinal_position) columns from information_schema.columns where table_schema in ('public','private','auth','storage','cron') and not (table_schema='auth' and table_name='schema_migrations') and not (table_schema='storage' and table_name='migrations') and not (table_schema='cron' and table_name='job_run_details') and (table_schema,table_name) in (select schemaname,tablename from pg_tables) group by table_schema,table_name order by table_schema,table_name",
     ));
   const result = [];
   for (const t of tables) {
@@ -201,9 +201,13 @@ async function snapshot(query, shape) {
         ? ` where ${t.table_name === "buckets" ? "id" : "bucket_id"} <> ${literal(BUCKET)}`
         : "";
     const rows = await query(
-      `select md5(row_to_json(t)::text) hash from (select ${t.columns.map(ident).join(",")} from ${ident(t.table_schema)}.${ident(t.table_name)}${filter}) t order by hash`,
+      `select coalesce(json_agg(hash order by hash),'[]'::json) hashes,count(*)::int count from (select md5(row_to_json(t)::text) hash from (select ${t.columns.map(ident).join(",")} from ${ident(t.table_schema)}.${ident(t.table_name)}${filter}) t) hashed`,
     );
-    result.push({ ...t, hashes: rows.map((r) => r.hash) });
+    assert(
+      rows[0].hashes.length === rows[0].count,
+      "Incomplete row fingerprint inventory",
+    );
+    result.push({ ...t, hashes: rows[0].hashes });
   }
   return result;
 }
@@ -488,6 +492,7 @@ async function approval(environment) {
   }
 }
 async function prepareLocal(empty = false) {
+  console.log("Starting isolated local Supabase (no production writes).");
   await mkdir(join(local, "supabase/migrations"), {
     recursive: true,
     mode: 0o700,
@@ -546,7 +551,7 @@ async function prepareLocal(empty = false) {
     "psql",
     "-X",
     "-U",
-    "postgres",
+    "supabase_admin",
     "-d",
     "postgres",
     "-v",
@@ -561,7 +566,7 @@ async function prepareLocal(empty = false) {
     "psql",
     "-X",
     "-U",
-    "postgres",
+    "supabase_admin",
     "-d",
     "postgres",
     "-v",
@@ -572,6 +577,9 @@ async function prepareLocal(empty = false) {
 }
 async function localAcceptance() {
   checkLedger(localQuery(ledgerSQL), await files(), 49);
+  console.log(
+    "Local baseline ledger verified: 49. Applying the six-file allowlist.",
+  );
   for (const f of PENDING)
     await copyFile(
       join(root, "supabase/migrations", f),
@@ -589,7 +597,7 @@ async function localAcceptance() {
       "psql",
       "-X",
       "-U",
-      "postgres",
+      "supabase_admin",
       "-d",
       "postgres",
       "-v",
@@ -605,11 +613,16 @@ async function localAcceptance() {
   );
   const { dockerBrowser } = await import("./docker-browser.mjs");
   const status = JSON.parse(supa("status", "--workdir", local, "-o", "json"));
-  await dockerBrowser(status, async (id) => {
+  console.log(
+    "Local ledger 55 and transactional SQL acceptance passed. Starting real browser acceptance.",
+  );
+  await dockerBrowser(status, async (id, enabled = true) => {
     assert(/^[a-f0-9-]{36}$/.test(id), "Invalid local user identity");
-    const sql = `insert into public.admin_memberships(user_id) values('${id}') on conflict do nothing;
+    const sql = enabled
+      ? `insert into public.admin_memberships(user_id) values('${id}') on conflict do nothing;
       insert into public.user_roles(user_id,role_id) select '${id}',id from public.roles where name='ADMIN';
-      insert into public.user_permissions(user_id,permission_key,effect,scope) select '${id}',key,'allow','all' from public.permissions where key not in ('roles.manage','security.manage','integrations.manage','maintenance.manage') on conflict do nothing;`;
+      insert into public.user_permissions(user_id,permission_key,effect,scope) select '${id}',key,'allow','all' from public.permissions where key not in ('roles.manage','security.manage','integrations.manage','maintenance.manage') on conflict do nothing;`
+      : `update public.admin_memberships set enabled=false where user_id='${id}'`;
     run(
       "docker",
       [
@@ -619,7 +632,7 @@ async function localAcceptance() {
         "psql",
         "-X",
         "-U",
-        "postgres",
+        "supabase_admin",
         "-d",
         "postgres",
         "-v",
@@ -675,6 +688,10 @@ async function backupAndTest() {
   encryptionKey();
   supa("link", "--project-ref", PROJECT);
   await baseline();
+  assert(
+    (await remoteQuery("select count(*)::int n from vault.secrets"))[0].n === 0,
+    "Vault contains secrets: an additional verified Vault-key backup/restore procedure is required",
+  );
   await mkdir(join(backup, "objects"), { recursive: true, mode: 0o700 });
   const before = await snapshot(remoteQuery);
   for (const [name, args] of [
@@ -687,6 +704,24 @@ async function backupAndTest() {
   }
   // CLI filters the ledger schema by default; back it up explicitly if absent.
   const schema = await readFile(join(backup, "schema.sql"), "utf8");
+  const data = await readFile(join(backup, "data.sql"), "utf8");
+  // Cron definitions/history belong in the encrypted backup too. Managed service
+  // version bookkeeping is kept by each local service, not rewritten as app data.
+  const extraCron =
+    before.some((t) => t.table_schema === "cron") &&
+    !/COPY\s+"?cron"?\."?job"?\s*\(/.test(data);
+  if (extraCron)
+    supa(
+      "db",
+      "dump",
+      "--linked",
+      "--schema",
+      "cron",
+      "--data-only",
+      "--use-copy",
+      "--file",
+      join(backup, "cron-data.sql"),
+    );
   const extraLedger =
     !/CREATE TABLE (?:IF NOT EXISTS )?supabase_migrations\.schema_migrations/.test(
       schema,
@@ -721,6 +756,7 @@ async function backupAndTest() {
     before,
     storage: storageManifest,
     extraLedger,
+    extraCron,
   });
   const archive = await uploadArchive();
   // Test the durable remote copy, never just the unuploaded local dump.
@@ -735,6 +771,7 @@ async function backupAndTest() {
     ...(manifest.extraLedger ? ["ledger-schema.sql"] : []),
     "data.sql",
     ...(manifest.extraLedger ? ["ledger-data.sql"] : []),
+    ...(manifest.extraCron ? ["cron-data.sql"] : []),
   ];
   let sql = "DROP SCHEMA IF EXISTS supabase_migrations CASCADE;\n";
   for (const name of names) {
@@ -750,7 +787,7 @@ async function backupAndTest() {
       "psql",
       "-X",
       "-U",
-      "postgres",
+      "supabase_admin",
       "-d",
       "postgres",
       "-v",

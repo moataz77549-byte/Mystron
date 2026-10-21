@@ -20,6 +20,9 @@ export async function dockerBrowser(status, grantUser) {
   if (created.error || !created.data.user)
     throw Error("Local Auth user creation failed");
   await grantUser(created.data.user.id);
+  console.log(
+    "Local Auth account provisioned. Building Next.js with isolated credentials.",
+  );
   // Deliberately construct a new environment: production credentials never reach
   // Next.js, npm lifecycle scripts or browser subprocesses during restored-data tests.
   const env = {
@@ -74,6 +77,7 @@ export async function dockerBrowser(status, grantUser) {
       .getByRole("button", { name: "تسجيل الدخول", exact: true })
       .click();
     await expect(page).toHaveURL(/admin\/dashboard/);
+    console.log("Real Auth browser login passed; testing catalog and studio.");
     const headers = { origin: "http://127.0.0.1:3000" };
     const forbidden = await context.request.post("/api/v1/admin/posts", {
       headers: { origin: "https://forbidden.example" },
@@ -133,6 +137,9 @@ export async function dockerBrowser(status, grantUser) {
     ).toBeVisible();
     await page.goto("/posts/docker-post-" + suffix);
     await expect(page.locator(".article-body")).toContainText("نص عربي محفوظ");
+    console.log(
+      "Catalog and editor persistence/publication passed; testing pages and sessions.",
+    );
     const tags = await context.request.get("/api/v1/admin/tags");
     expect(tags.status()).toBe(200);
     const reports = await context.request.get("/api/v1/admin/reports");
@@ -189,9 +196,20 @@ export async function dockerBrowser(status, grantUser) {
       !Buffer.from(await downloaded.data.arrayBuffer()).equals(bytes)
     )
       throw Error("Local Storage byte mismatch");
+    await grantUser(created.data.user.id, false);
+    await page.goto("/admin/dashboard");
+    await expect(page).toHaveURL(/admin\/login/);
     console.log(
       "Real Docker browser: login, session, catalog, editor/reload/publish, tags/reports, pages, five widths, authorization and Storage passed.",
     );
+  } catch (error) {
+    if (process.argv[2] === "local")
+      console.error(
+        error.message
+          .replaceAll(password, "[local password omitted]")
+          .replace(/eyJ[A-Za-z0-9_.-]+/g, "[local JWT omitted]"),
+      );
+    throw Error("Real Docker browser acceptance failed");
   } finally {
     await browser?.close();
     try {
