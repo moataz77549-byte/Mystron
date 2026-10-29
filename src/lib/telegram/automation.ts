@@ -335,6 +335,7 @@ export async function automationWork() {
               "AUTOMATION_DATABASE_FAILED",
               "TELEGRAM_FILE_FAILED",
               "UPLOAD_FAILED",
+              "MEDIA_POLICY_UNAVAILABLE",
             ].includes(code)
           )
             throw error;

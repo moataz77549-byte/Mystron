@@ -15,6 +15,7 @@ import {
   type BotReply,
 } from "../../../packages/contracts/telegram";
 import { linkHash } from "./security";
+import { telegramRpcError } from "./errors";
 import { telegramFile, storeTelegramImage } from "./files";
 type Row = Record<string, unknown>;
 type Draft = {
@@ -50,21 +51,12 @@ async function rpc<T = unknown>(
   name: string,
   args: Record<string, unknown>,
 ): Promise<T> {
-  const { data, error } = await privilegedDatabase().rpc(name, args);
-  if (error)
-    throw new Error(
-      error.message.includes("FORBIDDEN")
-        ? "FORBIDDEN"
-        : error.message.includes("VERSION_CONFLICT")
-          ? "VERSION_CONFLICT"
-          : error.message.includes("TELEGRAM_")
-            ? "TELEGRAM_SESSION_EXPIRED"
-            : error.message.includes("INVALID_LINK")
-              ? "INVALID_LINK"
-              : error.message.includes("PUBLICATION_INCOMPLETE")
-                ? "PUBLICATION_INCOMPLETE"
-                : "TELEGRAM_OPERATION_FAILED",
-    );
+  const { data, error } = await Promise.resolve(
+    privilegedDatabase().rpc(name, args),
+  ).catch(() => {
+    throw new Error("DATABASE_UNAVAILABLE");
+  });
+  if (error) throw telegramRpcError(error);
   return data as T;
 }
 const publicUrl = (path: string) =>
@@ -151,9 +143,7 @@ export async function processTelegram(
     });
   if (/^\/(?:start|link) [a-f0-9]{64}$/.test(text)) {
     await rpc("telegram_consume_link", {
-      p_hash: text.startsWith("/link ")
-        ? text.split(" ")[1]
-        : linkHash(text.split(" ")[1]),
+      p_hash: linkHash(text.split(" ")[1]),
       p_telegram_id: id,
     });
     text = "/start";
@@ -161,7 +151,12 @@ export async function processTelegram(
   let identity: Identity;
   try {
     identity = await read<Identity>("identity");
-  } catch {
+  } catch (error) {
+    if (
+      !(error instanceof Error) ||
+      !["FORBIDDEN", "TELEGRAM_SESSION_EXPIRED"].includes(error.message)
+    )
+      throw error;
     return result(
       "الحساب غير مربوط أو انتهت جلسته الإدارية. سجل الدخول إلى المنصة وافتح إعدادات Telegram لإنشاء رابط جديد.",
       [],
@@ -192,7 +187,9 @@ export async function processTelegram(
         ],
         [
           button("تغيير الصورة", `edit_image:${postId}`),
-          button("المساعد التحريري", `ai:${postId}`),
+          ...(process.env.AI_ENABLED === "true"
+            ? [button("المساعد التحريري", `ai:${postId}`)]
+            : []),
         ],
         [button("إرسال للمراجعة", `review:${postId}`)],
       );
@@ -436,6 +433,8 @@ export async function processTelegram(
     );
   }
   if (callback.startsWith("ai:")) {
+    if (process.env.AI_ENABLED !== "true")
+      return result("الذكاء الاصطناعي معطل.");
     const postId = callback.slice(3);
     return result(
       "المساعد التحريري: الاقتراحات للمراجعة فقط، لا تُنشر تلقائياً. يتطلب إرسال النص الخاص موافقة سياسة المالك.",
@@ -456,6 +455,8 @@ export async function processTelegram(
     );
   }
   if (callback.startsWith("assist:")) {
+    if (process.env.AI_ENABLED !== "true")
+      return result("الذكاء الاصطناعي معطل.");
     const [, action, postId] = callback.split(":");
     if (!editorialActions.includes(action as (typeof editorialActions)[number]))
       throw new Error("INVALID_ACTION");
