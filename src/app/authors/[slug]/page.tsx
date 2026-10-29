@@ -66,7 +66,9 @@ export default async function Page({
                 </a>
               ),
           )}
-          {safeLink(a.website) && <a href={a.website}>الموقع الإلكتروني</a>}
+          {safeLink(a.website) && (
+            <a href={safeLink(a.website) || undefined}>الموقع الإلكتروني</a>
+          )}
         </nav>
       </header>
       <h2>تدوينات الكاتب</h2>

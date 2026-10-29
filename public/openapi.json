@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MAYSTROON Public API",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "description": "Published public content and verified-session administration. Android consumers use JSON; write requests send the configured site Origin. Optional grounded AI, verified-session Telegram linking and signed automation gateway."
   },
   "servers": [
@@ -857,7 +857,8 @@
           {
             "session": []
           }
-        ]
+        ],
+        "description": "يدعم action=approve كقرار على نسخة review الحالية، بصلاحية posts.publish ونطاق المقال. لا يغير قيم الحالة. يتكرر بأمان على النسخة نفسها، ويصبح القرار قديماً عند زيادة version. لم يتغير مسار النشر الفوري القديم."
       }
     },
     "/api/v1/admin/revisions": {
@@ -4340,6 +4341,99 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/admin/pages": {
+      "post": {
+        "summary": "حفظ صفحة ثابتة؛ settings.update وPIN للمالك، نسخة متوقعة للتعديل",
+        "operationId": "admin_pages",
+        "responses": {
+          "200": {
+            "description": "Succeeded"
+          },
+          "400": {
+            "description": "INVALID_INPUT / invalid operation"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN / INVALID_ORIGIN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          },
+          "409": {
+            "description": "VERSION_CONFLICT"
+          },
+          "429": {
+            "description": "RATE_LIMITED"
+          },
+          "503": {
+            "description": "Service or required secrets unavailable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["patch"],
+                "properties": {
+                  "id": {
+                    "type": ["string", "null"],
+                    "format": "uuid"
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "patch": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "slug",
+                      "title",
+                      "description",
+                      "content_json",
+                      "is_published"
+                    ],
+                    "properties": {
+                      "slug": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                      },
+                      "title": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "description": {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      "content_json": {
+                        "type": "object",
+                        "description": "Tiptap JSON؛ يعاد التحقق والعرض الآمن على الخادم"
+                      },
+                      "is_published": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
       }
     }
   },

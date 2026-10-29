@@ -1,4 +1,5 @@
 import "server-only";
+import { compatibleCatalogRead } from "./editorial/catalog-compatibility";
 import { cache } from "react";
 import { publicDatabase } from "./supabase";
 import { databaseConfigured } from "./env";
@@ -44,16 +45,20 @@ export type Post = {
 export const publicPostFields =
   "id,title,slug,excerpt,content,cover_image,published_at,featured,reading_minutes,seo_title,seo_description,content_json,subtitle,cover_asset_id,thumbnail_asset_id,share_asset_id,updated_at,canonical_url,tags,sources,allow_comments,comments_close_at,sharing,authors(display_name,slug)";
 export async function categories(): Promise<Category[]> {
-  const { data, error } = await publicDatabase()
-    .from("categories")
-    .select(
+  return (
+    (await compatibleCatalogRead(
       "id,name,slug,description,sort_order,image_asset_id,parent_id,icon,color",
-    )
-    .eq("is_active", true)
-    .is("deleted_at", null)
-    .order("sort_order");
-  if (error) throw error;
-  return data;
+      "color",
+      (fields) =>
+        publicDatabase()
+          .from("categories")
+          .select(fields)
+          .eq("is_active", true)
+          .is("deleted_at", null)
+          .order("sort_order")
+          .overrideTypes<Category[], { merge: false }>(),
+    )) || []
+  );
 }
 export async function posts(params: Record<string, string | undefined> = {}) {
   const p = querySchema.parse(params);

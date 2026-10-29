@@ -1,0 +1,101 @@
+name: MAYSTROON database release
+on:
+  push:
+    branches: [fix-admin-editorial-publishing-overhaul]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: maystroon-production-database
+  cancel-in-progress: false
+jobs:
+  docker-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Require latest main to be integrated
+        run: git merge-base --is-ancestor origin/main HEAD
+      - run: node --test scripts/db-release.test.mjs
+      - run: npx playwright install --with-deps chromium
+      - name: Real Supabase Docker migration and RLS acceptance (no production secrets)
+        run: node scripts/db-release.mjs local
+      - name: Remove containers, volumes and temporary files
+        if: always()
+        run: node scripts/db-release.mjs cleanup
+
+  backup-restore-dry-run:
+    needs: docker-acceptance
+    if: github.ref == 'refs/heads/fix-admin-editorial-publishing-overhaul' && vars.MAYSTROON_DB_RELEASE_SHA == github.sha
+    environment: maystroon-db-backup
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      backup_prefix: ${{ steps.backup.outputs.backup_prefix }}
+      backup_digest: ${{ steps.backup.outputs.backup_digest }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+      - name: Verify recorded human approval before loading production secrets
+        run: node scripts/db-release.mjs approval maystroon-db-backup
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEWED_SHA: ${{ vars.MAYSTROON_DB_RELEASE_SHA }}
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Encrypted private backup, isolated restore, SQL acceptance and exact dry-run
+        id: backup
+        run: node scripts/db-release.mjs preflight
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_STORAGE_KEY: ${{ secrets.SUPABASE_STORAGE_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+      - name: Remove containers, volumes and plaintext backups
+        if: always()
+        run: node scripts/db-release.mjs cleanup
+
+  apply-six-migrations:
+    needs: backup-restore-dry-run
+    environment: maystroon-db-production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+      - name: Require a separate production approval for this run
+        run: node scripts/db-release.mjs approval maystroon-db-production
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEWED_SHA: ${{ vars.MAYSTROON_DB_RELEASE_SHA }}
+      - run: npm ci
+      - name: Apply exactly six migrations, verify 55, retained data and RLS
+        run: node scripts/db-release.mjs apply
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_STORAGE_KEY: ${{ secrets.SUPABASE_STORAGE_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          BACKUP_PREFIX: ${{ needs.backup-restore-dry-run.outputs.backup_prefix }}
+          BACKUP_DIGEST: ${{ needs.backup-restore-dry-run.outputs.backup_digest }}
+      - name: Remove plaintext backups and connection metadata
+        if: always()
+        run: node scripts/db-release.mjs cleanup
+# Deliberately no upload-artifact, automatic PR merge, or automatic Vercel promotion.

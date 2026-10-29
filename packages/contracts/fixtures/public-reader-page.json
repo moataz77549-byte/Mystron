@@ -1,0 +1,61 @@
+{
+  "data": [
+    {
+      "id": "10000000-0000-4000-8000-000000000001",
+      "title": "مقال لاختبار العقد فقط",
+      "slug": "اختبار-العقد",
+      "excerpt": "بيانات اختبار محلية لا تُضاف إلى الإنتاج.",
+      "subtitle": null,
+      "content": "<p>نص عربي English 2026</p>",
+      "content_json": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "نص عربي English 2026",
+                "marks": [{ "type": "bold" }]
+              }
+            ]
+          },
+          {
+            "type": "poetryVerse",
+            "attrs": {
+              "first": "الشطر الأول",
+              "second": "الشطر الثاني",
+              "size": "normal"
+            }
+          },
+          {
+            "type": "citation",
+            "attrs": {
+              "quote": "نص الاقتباس",
+              "author": "كاتب",
+              "book": "كتاب",
+              "page": "12",
+              "url": "https://example.org/source"
+            }
+          }
+        ]
+      },
+      "cover_image": null,
+      "cover_asset_id": null,
+      "thumbnail_asset_id": null,
+      "published_at": "2026-10-21T00:00:00+00:00",
+      "reading_minutes": 2,
+      "authors": { "display_name": "كاتب الاختبار", "slug": "كاتب-اختبار" },
+      "featured": false,
+      "tags": ["ثقافة"],
+      "sources": [
+        { "title": "مصدر", "url": "https://example.org/source", "page": "12" }
+      ],
+      "allow_comments": true,
+      "sharing": { "copy": true }
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 20
+}

@@ -7,6 +7,8 @@ const test = base.extend({
       "password recovery",
       "catalog metadata",
       "account sessions",
+      "static pages",
+      "editorial approval",
     ].findIndex((prefix) => info.title.startsWith(prefix));
     await provide({
       "x-vercel-forwarded-for": `192.0.2.${100 + index + (info.project.name === "mobile" ? 10 : 0)}`,
@@ -213,4 +215,144 @@ test("password recovery feedback and account controls are accessible without sen
   await expect(
     page.getByText("لا توجد بلاغات في هذه القائمة.", { exact: true }),
   ).toBeVisible();
+});
+test("editorial approval survives reload and expires on content change", async ({
+  page,
+}, info) => {
+  await login(page);
+  const headers = { origin: "http://127.0.0.1:3000" };
+  const created = await page.request.post("/api/v1/admin/posts", {
+    headers,
+    data: {
+      patch: {
+        title: "اعتماد المتصفح " + info.project.name,
+        slug: "approval-browser-" + info.project.name,
+      },
+    },
+  });
+  expect(created.status()).toBe(200);
+  let { data: row } = await created.json();
+  const review = await page.request.post("/api/v1/admin/transitions", {
+    headers,
+    data: { id: row.id, version: row.version, action: "review" },
+  });
+  expect(review.status()).toBe(200);
+  row = (await review.json()).data;
+  await page.goto(`/admin/posts/${row.id}/edit`);
+  await page
+    .getByRole("button", { name: "اعتماد النسخة الحالية", exact: true })
+    .click();
+  await expect(page.locator(".studio-top [role=status]")).toContainText(
+    "معتمد تحريرياً",
+  );
+  await page.reload();
+  await expect(page.locator(".studio-top [role=status]")).toContainText(
+    "معتمد تحريرياً",
+  );
+  await page
+    .getByLabel("العنوان", { exact: true })
+    .fill("عنوان معدل بعد الاعتماد " + info.project.name);
+  await expect(page.locator(".studio-top [role=status]")).not.toContainText(
+    "معتمد تحريرياً",
+  );
+  await page.getByRole("button", { name: "حفظ الآن", exact: true }).click();
+  await expect(page.locator(".studio-top [role=status]")).toContainText(
+    "تم الحفظ",
+  );
+  await page.goto("/admin/posts?status=approved");
+  await expect(
+    page.getByRole("link", {
+      name: "عنوان معدل بعد الاعتماد " + info.project.name,
+      exact: true,
+    }),
+  ).toHaveCount(0);
+});
+test("static pages publish, render safe content, retain paths and unpublish on mobile", async ({
+  page,
+}, info) => {
+  await login(page);
+  await page.goto("/admin/security");
+  await page
+    .getByRole("button", {
+      name: /تعيين PIN|تغيير أو إعادة تعيين PIN/,
+      exact: true,
+    })
+    .click();
+  await page.getByLabel("PIN جديد", { exact: true }).fill("39271486");
+  await page
+    .getByLabel("كلمة المرور الحالية", { exact: true })
+    .fill("Fixture-password-2026");
+  await page.getByRole("button", { name: "حفظ PIN", exact: true }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "نجح التحقق" }),
+  ).toBeVisible();
+  await page.goto("/admin/pages");
+  const slug = "page-browser-" + info.project.name;
+  await page
+    .getByLabel("عنوان الصفحة", { exact: true })
+    .fill("صفحة تجريبية معزولة " + info.project.name);
+  await page.getByLabel("رابط الصفحة", { exact: true }).fill(slug);
+  await page
+    .getByLabel("وصف الصفحة", { exact: true })
+    .fill("وصف محفوظ للقراءة");
+  await page
+    .getByLabel("محتوى الصفحة", { exact: true })
+    .fill("نص عربي آمن <script>alert(1)</script>");
+  await page.getByRole("button", { name: "حفظ الصفحة", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText("تم الحفظ.");
+  const hidden = await page.request.get("/pages/" + slug);
+  // Next.js keeps 200 when notFound resolves after streaming starts.
+  expect([200, 404]).toContain(hidden.status());
+  const hiddenHtml = await hidden.text();
+  expect(hiddenHtml).toContain('name="robots" content="noindex"');
+  expect(hiddenHtml).not.toContain("نص عربي آمن");
+  expect(hiddenHtml).not.toContain("صفحة تجريبية معزولة " + info.project.name);
+  await page.getByLabel("نشر الصفحة للعامة", { exact: true }).check();
+  await page.getByRole("button", { name: "حفظ الصفحة", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText("تم الحفظ.");
+  await page.goto("/pages/" + slug);
+  await expect(
+    page.getByRole("heading", {
+      name: "صفحة تجريبية معزولة " + info.project.name,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("نص عربي آمن <script>alert(1)</script>", { exact: true }),
+  ).toBeVisible();
+  expect(await page.locator("article script").count()).toBe(0);
+  await expect(page).toHaveTitle(/صفحة تجريبية معزولة/);
+  await page.goto("/admin/pages");
+  await page
+    .getByRole("button", {
+      name: "فتح صفحة تجريبية معزولة " + info.project.name,
+      exact: true,
+    })
+    .click();
+  await expect(page.getByLabel("رابط الصفحة", { exact: true })).toHaveAttribute(
+    "readonly",
+    "",
+  );
+  await page.getByLabel("نشر الصفحة للعامة", { exact: true }).uncheck();
+  await page.getByRole("button", { name: "حفظ الصفحة", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText("تم الحفظ.");
+  const unpublished = await page.request.get("/pages/" + slug);
+  expect([200, 404]).toContain(unpublished.status());
+  const unpublishedHtml = await unpublished.text();
+  expect(unpublishedHtml).toContain('name="robots" content="noindex"');
+  expect(unpublishedHtml).not.toContain("نص عربي آمن");
+  expect(unpublishedHtml).not.toContain(
+    "صفحة تجريبية معزولة " + info.project.name,
+  );
+  for (const width of [360, 390, 412, 768, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({
+      path: `test-results/pages-${info.project.name}-${width}.png`,
+    });
+  }
 });

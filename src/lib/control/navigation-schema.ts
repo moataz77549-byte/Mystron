@@ -24,6 +24,7 @@ export const adminGroups: AdminGroup[] = [
       link("posts/new", "إضافة مقال جديد", "posts.create"),
       link("posts?status=draft", "المسودات", "posts.read"),
       link("posts?status=review", "قيد المراجعة", "posts.read"),
+      link("posts?status=approved", "معتمدة تحريرياً", "posts.read"),
       link("scheduled", "المجدولة", "posts.schedule"),
       link("posts?status=published", "المنشورة", "posts.read"),
       link("posts?status=archived", "الأرشيف", "posts.read"),
@@ -48,6 +49,7 @@ export const adminGroups: AdminGroup[] = [
     label: "إدارة الموقع",
     links: [
       link("settings?tab=home", "الصفحة الرئيسية", "settings.read"),
+      link("pages", "الصفحات الثابتة", "settings.read"),
       link("menus", "القوائم", "menus.manage"),
       link("announcements", "شريط الأخبار والتنبيهات", "announcements.manage"),
       link("advertisements", "الإعلانات", "announcements.manage"),

@@ -14,3 +14,6 @@ supabase/.temp/
 __pycache__/
 .ruff_cache/
 *.pyc
+
+# Local verification tools and logs
+.work/
