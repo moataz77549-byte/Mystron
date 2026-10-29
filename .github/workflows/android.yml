@@ -1,0 +1,116 @@
+name: MAYSTROON Native Android
+on:
+  push:
+    branches: [feature/unified-api-native-android]
+  pull_request:
+    paths:
+      [
+        "apps/android/**",
+        ".github/workflows/android.yml",
+        "packages/contracts/public-reader*",
+        "openapi/**",
+      ]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a
+        with:
+          gradle-version: "8.11.1"
+      - name: Compile, test, lint and shrink
+        working-directory: apps/android
+        run: |
+          gradle --no-daemon testDebugUnitTest assembleDebug
+          gradle --no-daemon -PtargetAbi=arm64-v8a lintRelease assembleRelease
+      - name: Inspect APK and produce checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p android-delivery
+          cp apps/android/app/build/outputs/apk/debug/app-debug.apk android-delivery/MAYSTROON-v1.0.0-rc.1-preview-debug.apk
+          cp apps/android/app/build/outputs/apk/release/app-release-unsigned.apk android-delivery/MAYSTROON-v1.0.0-rc.1-arm64-v8a-release-unsigned.apk
+          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest min-sdk android-delivery/MAYSTROON-v1.0.0-rc.1-arm64-v8a-release-unsigned.apk | tee android-delivery/min-sdk.txt
+          test "$(cat android-delivery/min-sdk.txt)" = 26
+          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest debuggable android-delivery/MAYSTROON-v1.0.0-rc.1-arm64-v8a-release-unsigned.apk | tee android-delivery/debuggable.txt
+          test "$(cat android-delivery/debuggable.txt)" = false
+          python3 - <<'PY'
+          import pathlib, zipfile
+          apk = pathlib.Path('android-delivery/MAYSTROON-v1.0.0-rc.1-arm64-v8a-release-unsigned.apk')
+          with zipfile.ZipFile(apk) as archive:
+              libraries = [name for name in archive.namelist() if name.startswith('lib/') and name.endswith('.so')]
+          if libraries and not any(name.startswith('lib/arm64-v8a/') for name in libraries):
+              raise SystemExit('Native libraries lack arm64-v8a support')
+          if any(not name.startswith('lib/arm64-v8a/') for name in libraries):
+              raise SystemExit('The arm64 release contains an unexpected native ABI')
+          pathlib.Path('android-delivery/abi.txt').write_text('\n'.join(libraries) if libraries else 'Pure JVM/Kotlin APK: no packaged native libraries; arm64-v8a supported.\n')
+          PY
+          (cd android-delivery && sha256sum *.apk > SHA256SUMS.txt)
+          printf '%s\n' 'Reader RC only. The preview APK uses the disposable Android debug key. The release APK is unsigned and not installable until owner release signing is configured. Native administration, submissions and final acceptance are not complete.' > android-delivery/STATUS.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: maystroon-android-reader-rc
+          path: android-delivery/
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: android-unit-and-lint-reports
+          path: apps/android/app/build/reports/
+          if-no-files-found: ignore
+          retention-days: 7
+  device-tests:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [26, 29, 35]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a
+        with:
+          gradle-version: "8.11.1"
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Guest navigation and persistence on Android
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        with:
+          api-level: ${{ matrix.api }}
+          target: google_apis
+          arch: x86_64
+          profile: Nexus 6
+          ram-size: 2048M
+          disable-animations: true
+          emulator-boot-timeout: 600
+          script: bash scripts/android-device-check.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: android-device-api-${{ matrix.api }}
+          path: |
+            apps/android/app/build/reports/androidTests/
+            apps/android/app/build/outputs/androidTest-results/
+            android-screenshots/
+          if-no-files-found: ignore
+          retention-days: 7
