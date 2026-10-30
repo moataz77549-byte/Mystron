@@ -17,6 +17,7 @@ data class ArticleState(val post: Post? = null, val loading: Boolean = false, va
 data class CommentsState(val rows: List<PublicComment> = emptyList(), val total: Int = 0, val page: Int = 0, val loading: Boolean = false, val error: String? = null)
 class ReaderViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as MaystroonApplication
+    private val articles = ArticleRepository(app.database.reader()) { slug -> app.api.post(slug).data }
     private var feedJob: Job? = null
     private var articleJob: Job? = null
     private var commentJob: Job? = null
@@ -40,6 +41,9 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
     val notice = _notice.asStateFlow()
     val settings = app.preferences.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Preferences())
     val saved = app.database.reader().observeSaved().map { rows -> rows.mapNotNull { row ->
+        runCatching { ApiFactory.json.decodeFromString<Post>(row.document) }.getOrNull()
+    } }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val recent = app.database.reader().observeRecent().map { rows -> rows.mapNotNull { row ->
         runCatching { ApiFactory.json.decodeFromString<Post>(row.document) }.getOrNull()
     } }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     init { refresh(); loadCatalog() }
@@ -91,17 +95,12 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
         articleJob = viewModelScope.launch {
             _article.value = ArticleState(loading = true)
             try {
-                val post = app.api.post(slug).data
-                _article.value = ArticleState(post = post, error = if (post == null) publicError(404) else null)
-                if (post != null) comments(post.id)
+                val result = articles.load(slug)
+                _article.value = ArticleState(post = result.post, offline = result.offline, error = if (result.post == null) publicError(404) else null)
+                if (result.post != null && !result.offline) comments(result.post.id)
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                val code = (e as? HttpException)?.code()
-                // A confirmed withdrawal must not fall back to an old downloaded copy.
-                val cached = if (code == 404 || code == 410) null else app.database.reader().saved(slug)?.let {
-                    runCatching { ApiFactory.json.decodeFromString<Post>(it.document) }.getOrNull()
-                }
-                _article.value = ArticleState(post = cached, offline = cached != null, error = if (cached == null) error(e) else null)
+                _article.value = ArticleState(error = error(e))
             }
         }
     }

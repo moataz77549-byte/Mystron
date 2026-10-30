@@ -8,6 +8,6 @@ import com.maystroon.reader.core.ReaderPreferences
 
 class MaystroonApplication : Application() {
     val api by lazy { ApiFactory.create() }
-    val database by lazy { Room.databaseBuilder(this, ReaderDatabase::class.java, "reader.db").build() }
+    val database by lazy { Room.databaseBuilder(this, ReaderDatabase::class.java, "reader.db").addMigrations(ReaderDatabase.MIGRATION_1_2).build() }
     val preferences by lazy { ReaderPreferences(this) }
 }
