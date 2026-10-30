@@ -8,6 +8,7 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 const reasons: Record<string, string> = {
+  oauth: "تعذر بدء تسجيل الدخول عبر GitHub. تحقق من إعدادات مزود GitHub في Supabase.",
   "link-invalid":
     "رابط البريد غير صالح أو انتهت صلاحيته. اطلب رابط دخول جديداً.",
   session: "انتهت الجلسة الإدارية، يرجى تسجيل الدخول مجدداً.",
@@ -47,6 +48,13 @@ export default async function Login({
       {databaseConfigured() ? (
         <>
           <LoginForm />
+          <div className="auth-provider-login">
+            <p>أو استخدم حساب GitHub المرتبط بهويتك الإدارية:</p>
+            <a className="button" href="/auth/github">
+              المتابعة باستخدام GitHub
+            </a>
+            <p className="text-muted">تسجيل الدخول عبر GitHub لا يمنح أي صلاحية إدارية تلقائياً.</p>
+          </div>
           <MagicLogin />
           <RecoveryForm />
         </>

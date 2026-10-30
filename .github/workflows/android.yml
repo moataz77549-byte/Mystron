@@ -45,14 +45,14 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p android-delivery
-          cp apps/android/app/build/outputs/apk/debug/app-debug.apk android-delivery/MAYSTROON-v1.0.0-rc.2-preview-debug.apk
-          cp apps/android/app/build/outputs/apk/release/app-release-unsigned.apk android-delivery/MAYSTROON-v1.0.0-rc.2-arm64-v8a-release-unsigned.apk
-          cp apps/android/app/build/outputs/apk/preview/app-preview.apk android-delivery/MAYSTROON-v1.0.0-rc.2-arm64-v8a-preview.apk
-          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest min-sdk android-delivery/MAYSTROON-v1.0.0-rc.2-arm64-v8a-release-unsigned.apk | tee android-delivery/min-sdk.txt
+          cp apps/android/app/build/outputs/apk/debug/app-debug.apk android-delivery/MAYSTROON-v1.0.0-rc.3-preview-debug.apk
+          cp apps/android/app/build/outputs/apk/release/app-release-unsigned.apk android-delivery/MAYSTROON-v1.0.0-rc.3-arm64-v8a-release-unsigned.apk
+          cp apps/android/app/build/outputs/apk/preview/app-preview.apk android-delivery/MAYSTROON-v1.0.0-rc.3-arm64-v8a-preview.apk
+          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest min-sdk android-delivery/MAYSTROON-v1.0.0-rc.3-arm64-v8a-release-unsigned.apk | tee android-delivery/min-sdk.txt
           test "$(cat android-delivery/min-sdk.txt)" = 26
-          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest debuggable android-delivery/MAYSTROON-v1.0.0-rc.2-arm64-v8a-release-unsigned.apk | tee android-delivery/debuggable.txt
+          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest debuggable android-delivery/MAYSTROON-v1.0.0-rc.3-arm64-v8a-release-unsigned.apk | tee android-delivery/debuggable.txt
           test "$(cat android-delivery/debuggable.txt)" = false
-          preview=android-delivery/MAYSTROON-v1.0.0-rc.2-arm64-v8a-preview.apk
+          preview=android-delivery/MAYSTROON-v1.0.0-rc.3-arm64-v8a-preview.apk
           analyzer="$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
           test "$("$analyzer" manifest min-sdk "$preview")" = 26
           test "$("$analyzer" manifest debuggable "$preview")" = false
@@ -61,7 +61,7 @@ jobs:
           "$signer" verify --verbose "$preview" > android-delivery/preview-signature.txt
           python3 - <<'PY'
           import pathlib, zipfile
-          apk = pathlib.Path('android-delivery/MAYSTROON-v1.0.0-rc.2-arm64-v8a-preview.apk')
+          apk = pathlib.Path('android-delivery/MAYSTROON-v1.0.0-rc.3-arm64-v8a-preview.apk')
           with zipfile.ZipFile(apk) as archive:
               libraries = [name for name in archive.namelist() if name.startswith('lib/') and name.endswith('.so')]
           if libraries and not any(name.startswith('lib/arm64-v8a/') for name in libraries):

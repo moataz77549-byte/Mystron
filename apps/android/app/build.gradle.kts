@@ -12,8 +12,8 @@ android {
         applicationId = "com.maystroon.reader"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.0.0-rc.2"
+        versionCode = 3
+        versionName = "1.0.0-rc.3"
         // CI narrows the release only; emulator/debug builds keep their native ABI.
         ndk { abiFilters += providers.gradleProperty("targetAbi").orNull?.split(",").orEmpty() }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
