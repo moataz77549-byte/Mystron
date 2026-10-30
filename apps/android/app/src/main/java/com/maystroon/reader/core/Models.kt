@@ -59,6 +59,18 @@ import java.util.Locale
     }
 }
 
+/** Accept only canonical MAYSTROON HTTPS post links, never untrusted hosts or paths. */
+fun postSlugFromSiteLink(link: String?): String? {
+    if (link == null || link.length > 1024) return null
+    val uri = runCatching { URI(link) }.getOrNull() ?: return null
+    if (uri.scheme != "https" || uri.host != "mystron-henna.vercel.app" ||
+        uri.port != -1 || uri.rawUserInfo != null) return null
+    val path = uri.path ?: return null
+    if (!path.startsWith("/posts/")) return null
+    val slug = path.removePrefix("/posts/").removeSuffix("/")
+    return slug.takeIf { it.matches(Regex("[\\p{L}\\p{N}_-]{1,150}")) }
+}
+
 fun encodeSegment(value: String): String = java.net.URLEncoder.encode(value, "UTF-8").replace("+", "%20")
 fun safeHttps(value: String?): String? = runCatching {
     val uri = URI(value ?: return null)

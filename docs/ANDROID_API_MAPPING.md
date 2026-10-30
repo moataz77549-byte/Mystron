@@ -19,3 +19,8 @@ New home/navigation/category-detail/related/author-post APIs are additive, and
 require deployment of this branch before clients can rely on them. The current
 native feed intentionally relies on the pre-existing published reader endpoints.
 Administrative and submission APIs are not yet wired into Android.
+
+Native site-link handoff: `/posts/{slug}` is matched to the HTTPS host in
+AndroidManifest and navigated into Compose, with no WebView or authentication.
+Canonical published content updates through the shared API as it is requested;
+UI features require separate native implementation and new APK builds.
