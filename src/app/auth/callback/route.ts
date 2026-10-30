@@ -23,7 +23,10 @@ export async function GET(request: NextRequest) {
     }
     const identity = await db.rpc("admin_identity");
     if (identity.error) return fail("service");
-    if (!identity.data?.active || !Object.keys(identity.data.permissions || {}).length) {
+    if (
+      !identity.data?.active ||
+      !Object.keys(identity.data.permissions || {}).length
+    ) {
       await db.auth.signOut({ scope: "local" }).catch(() => null);
       return fail("access");
     }

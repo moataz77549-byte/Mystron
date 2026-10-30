@@ -21,7 +21,9 @@ import { GET as complete } from "../src/app/auth/callback/route";
 function mockSession() {
   const auth = {
     signInWithOAuth: vi.fn().mockResolvedValue({
-      data: { url: "https://ttvasynaxkkcwrmvlorg.supabase.co/auth/v1/authorize?provider=github" },
+      data: {
+        url: "https://ttvasynaxkkcwrmvlorg.supabase.co/auth/v1/authorize?provider=github",
+      },
       error: null,
     }),
     exchangeCodeForSession: vi.fn().mockResolvedValue({ error: null }),
@@ -47,7 +49,9 @@ beforeEach(() => {
 it("starts GitHub OAuth with the app callback, never adding a role", async () => {
   const { auth } = mockSession();
   const response = await startGithub();
-  expect(response.headers.get("location")).toContain("/auth/v1/authorize?provider=github");
+  expect(response.headers.get("location")).toContain(
+    "/auth/v1/authorize?provider=github",
+  );
   expect(auth.signInWithOAuth).toHaveBeenCalledWith({
     provider: "github",
     options: { redirectTo: "https://mystron-henna.vercel.app/auth/callback" },
@@ -56,37 +60,67 @@ it("starts GitHub OAuth with the app callback, never adding a role", async () =>
 
 it("fails safely when the provider is unavailable or redirects off project", async () => {
   state.configured = false;
-  expect((await startGithub()).headers.get("location")).toContain("reason=oauth");
+  expect((await startGithub()).headers.get("location")).toContain(
+    "reason=oauth",
+  );
   state.configured = true;
   const { auth } = mockSession();
   auth.signInWithOAuth.mockResolvedValue({
     data: { url: "https://attacker.invalid/auth/v1/authorize" },
     error: null,
   });
-  expect((await startGithub()).headers.get("location")).toContain("reason=oauth");
+  expect((await startGithub()).headers.get("location")).toContain(
+    "reason=oauth",
+  );
 });
 
 it("allows only confirmed, active, database-authorized admins", async () => {
   const { rpc } = mockSession();
-  const request = new NextRequest("https://mystron-henna.vercel.app/auth/callback?code=verified-code");
-  expect((await complete(request)).headers.get("location")).toBe("https://mystron-henna.vercel.app/admin");
-  rpc.mockResolvedValue({ data: { active: false, permissions: {} }, error: null });
+  const request = new NextRequest(
+    "https://mystron-henna.vercel.app/auth/callback?code=verified-code",
+  );
+  expect((await complete(request)).headers.get("location")).toBe(
+    "https://mystron-henna.vercel.app/admin",
+  );
+  rpc.mockResolvedValue({
+    data: { active: false, permissions: {} },
+    error: null,
+  });
   const result = await complete(request);
   expect(result.headers.get("location")).toContain("reason=access");
 });
 
 it("rejects unassigned identities and cleans up the local session", async () => {
   const { auth, rpc } = mockSession();
-  rpc.mockResolvedValue({ data: { active: false, permissions: {} }, error: null });
-  await complete(new NextRequest("https://mystron-henna.vercel.app/auth/callback?code=oauth-code"));
+  rpc.mockResolvedValue({
+    data: { active: false, permissions: {} },
+    error: null,
+  });
+  await complete(
+    new NextRequest(
+      "https://mystron-henna.vercel.app/auth/callback?code=oauth-code",
+    ),
+  );
   expect(auth.signOut).toHaveBeenCalledWith({ scope: "local" });
 });
 
 it("rejects missing codes and unverified email", async () => {
-  expect((await complete(new NextRequest("https://mystron-henna.vercel.app/auth/callback"))).headers.get("location"))
-    .toContain("reason=link-invalid");
+  expect(
+    (
+      await complete(
+        new NextRequest("https://mystron-henna.vercel.app/auth/callback"),
+      )
+    ).headers.get("location"),
+  ).toContain("reason=link-invalid");
   const { auth } = mockSession();
-  auth.getUser.mockResolvedValue({ data: { user: { email_confirmed_at: null } }, error: null });
-  const response = await complete(new NextRequest("https://mystron-henna.vercel.app/auth/callback?code=oauth-code"));
+  auth.getUser.mockResolvedValue({
+    data: { user: { email_confirmed_at: null } },
+    error: null,
+  });
+  const response = await complete(
+    new NextRequest(
+      "https://mystron-henna.vercel.app/auth/callback?code=oauth-code",
+    ),
+  );
   expect(response.headers.get("location")).toContain("reason=email");
 });

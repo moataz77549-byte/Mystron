@@ -21,7 +21,8 @@ export async function GET() {
       authorization.origin !== configured.origin ||
       authorization.pathname !== "/auth/v1/authorize" ||
       !["https:", "http:"].includes(authorization.protocol)
-    ) return NextResponse.redirect(errorPage);
+    )
+      return NextResponse.redirect(errorPage);
     return NextResponse.redirect(authorization, {
       headers: { "Cache-Control": "no-store" },
     });

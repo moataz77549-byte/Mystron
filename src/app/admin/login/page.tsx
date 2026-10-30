@@ -53,7 +53,9 @@ export default async function Login({
             <a className="button" href="/auth/github">
               المتابعة باستخدام GitHub
             </a>
-            <p className="text-muted">تسجيل الدخول عبر GitHub لا يمنح أي صلاحية إدارية تلقائياً.</p>
+            <p className="text-muted">
+              تسجيل الدخول عبر GitHub لا يمنح أي صلاحية إدارية تلقائياً.
+            </p>
           </div>
           <MagicLogin />
           <RecoveryForm />
