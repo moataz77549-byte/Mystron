@@ -1,13 +1,19 @@
 name: MAYSTROON Native Android
 on:
   push:
-    branches: [feature/unified-api-native-android]
+    branches:
+      [
+        main,
+        feature/unified-api-native-android,
+        fix/maystroon-final-production-completion,
+      ]
   pull_request:
     paths:
       [
         "apps/android/**",
         ".github/workflows/android.yml",
-        "packages/contracts/public-reader*",
+        "packages/contracts/**",
+        "scripts/android-device-check.sh",
         "openapi/**",
       ]
   workflow_dispatch:
@@ -33,21 +39,29 @@ jobs:
         working-directory: apps/android
         run: |
           gradle --no-daemon testDebugUnitTest assembleDebug
-          gradle --no-daemon -PtargetAbi=arm64-v8a lintRelease assembleRelease
+          gradle --no-daemon -PtargetAbi=arm64-v8a lintRelease lintPreview assembleRelease assemblePreview
       - name: Inspect APK and produce checksums
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p android-delivery
-          cp apps/android/app/build/outputs/apk/debug/app-debug.apk android-delivery/MAYSTROON-v1.0.0-rc.1-preview-debug.apk
-          cp apps/android/app/build/outputs/apk/release/app-release-unsigned.apk android-delivery/MAYSTROON-v1.0.0-rc.1-arm64-v8a-release-unsigned.apk
-          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest min-sdk android-delivery/MAYSTROON-v1.0.0-rc.1-arm64-v8a-release-unsigned.apk | tee android-delivery/min-sdk.txt
+          cp apps/android/app/build/outputs/apk/debug/app-debug.apk android-delivery/MAYSTROON-v1.0.0-rc.2-preview-debug.apk
+          cp apps/android/app/build/outputs/apk/release/app-release-unsigned.apk android-delivery/MAYSTROON-v1.0.0-rc.2-arm64-v8a-release-unsigned.apk
+          cp apps/android/app/build/outputs/apk/preview/app-preview.apk android-delivery/MAYSTROON-v1.0.0-rc.2-arm64-v8a-preview.apk
+          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest min-sdk android-delivery/MAYSTROON-v1.0.0-rc.2-arm64-v8a-release-unsigned.apk | tee android-delivery/min-sdk.txt
           test "$(cat android-delivery/min-sdk.txt)" = 26
-          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest debuggable android-delivery/MAYSTROON-v1.0.0-rc.1-arm64-v8a-release-unsigned.apk | tee android-delivery/debuggable.txt
+          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest debuggable android-delivery/MAYSTROON-v1.0.0-rc.2-arm64-v8a-release-unsigned.apk | tee android-delivery/debuggable.txt
           test "$(cat android-delivery/debuggable.txt)" = false
+          preview=android-delivery/MAYSTROON-v1.0.0-rc.2-arm64-v8a-preview.apk
+          analyzer="$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
+          test "$("$analyzer" manifest min-sdk "$preview")" = 26
+          test "$("$analyzer" manifest debuggable "$preview")" = false
+          test "$("$analyzer" manifest application-id "$preview")" = com.maystroon.reader.preview
+          signer=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
+          "$signer" verify --verbose "$preview" > android-delivery/preview-signature.txt
           python3 - <<'PY'
           import pathlib, zipfile
-          apk = pathlib.Path('android-delivery/MAYSTROON-v1.0.0-rc.1-arm64-v8a-release-unsigned.apk')
+          apk = pathlib.Path('android-delivery/MAYSTROON-v1.0.0-rc.2-arm64-v8a-preview.apk')
           with zipfile.ZipFile(apk) as archive:
               libraries = [name for name in archive.namelist() if name.startswith('lib/') and name.endswith('.so')]
           if libraries and not any(name.startswith('lib/arm64-v8a/') for name in libraries):
@@ -57,7 +71,7 @@ jobs:
           pathlib.Path('android-delivery/abi.txt').write_text('\n'.join(libraries) if libraries else 'Pure JVM/Kotlin APK: no packaged native libraries; arm64-v8a supported.\n')
           PY
           (cd android-delivery && sha256sum *.apk > SHA256SUMS.txt)
-          printf '%s\n' 'Reader RC only. The preview APK uses the disposable Android debug key. The release APK is unsigned and not installable until owner release signing is configured. Native administration, submissions and final acceptance are not complete.' > android-delivery/STATUS.txt
+          printf '%s\n' 'Reader RC only. Both preview APKs use the disposable Android debug key; the arm64 preview is optimized, signed and installable for testing only. The release APK is unsigned and not installable until owner release signing is configured. Native administration, submissions and final acceptance are not complete.' > android-delivery/STATUS.txt
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: maystroon-android-reader-rc
