@@ -129,7 +129,7 @@ test("control center enforces PIN, saves settings, menus, maintenance and scoped
     ),
   ).toBe(true);
   await page.screenshot({
-    path: `docs/screenshots/stage-3-${info.project.name}-fixture.png`,
+    path: info.outputPath("stage-3-fixture.png"),
     fullPage: true,
   });
   const restricted = await browser.newContext();

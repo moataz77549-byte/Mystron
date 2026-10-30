@@ -234,6 +234,25 @@ export async function dockerBrowser(status, grantUser) {
     ).toBeVisible();
     await page.goto("/posts/docker-post-" + suffix);
     await expect(page.locator(".article-body")).toContainText("نص عربي محفوظ");
+    // Exercise real PostgREST relationship filtering, not the SQL test adapter.
+    const categoryFeed = await context.request.get(
+      `/api/v1/posts?category=docker-${suffix}&pageSize=1`,
+    );
+    expect(categoryFeed.status()).toBe(200);
+    const feed = await categoryFeed.json();
+    expect(feed.total).toBe(1);
+    expect(feed.data.map((post) => post.slug)).toEqual([
+      "docker-post-" + suffix,
+    ]);
+    const nextFeed = await context.request.get(
+      `/api/v1/posts?category=docker-${suffix}&pageSize=1&page=2`,
+    );
+    expect(nextFeed.status()).toBe(200);
+    expect(await nextFeed.json()).toMatchObject({
+      data: [],
+      total: 1,
+      page: 2,
+    });
     console.log(
       "Catalog and editor persistence/publication passed; testing pages and sessions.",
     );
