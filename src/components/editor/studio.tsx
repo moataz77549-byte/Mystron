@@ -460,6 +460,49 @@ export default function Studio({
       setTransitionBusy(false);
     }
   }
+  async function restoreRevision(id: string) {
+    if (
+      transitionLock.current ||
+      busy.current ||
+      dirtyFlag.current ||
+      conflict ||
+      !online
+    )
+      return;
+    transitionLock.current = true;
+    setTransitionBusy(true);
+    editor?.setEditable(false, false);
+    try {
+      const restored = await command("revisions", {
+        id,
+        version: record.version,
+      });
+      if (
+        !restored ||
+        restored.id !== record.id ||
+        !Number.isInteger(restored.version) ||
+        restored.version <= record.version
+      )
+        throw new AdminRequestError("INVALID_RESPONSE", 503);
+      // Keep inputs locked until the server version, including all metadata, reloads.
+      // Writing while this request is pending would otherwise be silently replaced.
+      try {
+        storeBrowserDraft(storageKey, null);
+        localStorage.removeItem(legacyKey);
+      } catch {
+        /* A stale recovery prompt is safer than discarding a confirmed restore. */
+      }
+      setStatus("تمت استعادة النسخة؛ جارٍ تحميل بياناتها.");
+      window.location.reload();
+    } catch (e) {
+      setError(adminErrorMessage(e));
+      if (e instanceof AdminRequestError && e.code === "VERSION_CONFLICT")
+        setConflict(true);
+      transitionLock.current = false;
+      setTransitionBusy(false);
+      editor?.setEditable(!needsRecovery, false);
+    }
+  }
   async function loadRevisions() {
     try {
       const result = await adminRequest<{
@@ -1200,32 +1243,10 @@ export default function Studio({
           <div key={r.id}>
             <time>{new Date(r.created_at).toLocaleString("ar-YE")}</time>
             <button
-              disabled={dirty}
-              onClick={async () => {
-                try {
-                  const d = await command("revisions", {
-                    id: r.id,
-                    version: record.version,
-                  });
-                  setRecord(d);
-                  setTitle(d.title);
-                  setSlug(d.slug);
-                  docRef.current = d.content_json;
-                  editor.commands.setContent(
-                    cleanEditorDocument(d.content_json),
-                    { emitUpdate: false },
-                  );
-                  dirtyFlag.current = false;
-                  storeBrowserDraft(storageKey, null);
-                  localStorage.removeItem(legacyKey);
-                  setStatus(
-                    "تمت استعادة النسخة؛ راجع بيانات التدوينة بعد إعادة التحميل.",
-                  );
-                  window.location.reload();
-                } catch (e) {
-                  setError(adminErrorMessage(e));
-                }
-              }}
+              disabled={
+                dirty || saving || transitionBusy || conflict || !online
+              }
+              onClick={() => void restoreRevision(r.id)}
             >
               استعادة
             </button>
