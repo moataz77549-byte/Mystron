@@ -206,6 +206,9 @@ createServer((req, res) => {
         if (!["GET", "HEAD"].includes(req.method))
           return json(405, { message: "Use RPC" });
         let fields = url.searchParams.get("select") || "*";
+        const categoryJoin = fields.includes("post_categories!inner()");
+        if (categoryJoin)
+          fields = fields.replace(",post_categories!inner()", "");
         const relations = [];
         fields = fields.replace(
           /(authors|roles|categories)\(([^)]+)\)/g,
@@ -283,7 +286,18 @@ createServer((req, res) => {
         const where = [];
         for (const [k, v] of url.searchParams) {
           if (["select", "order", "limit", "offset"].includes(k)) continue;
-          if (k === "or") {
+          if (
+            k === "post_categories.category_id" &&
+            categoryJoin &&
+            table === "posts"
+          ) {
+            if (!v.startsWith("eq."))
+              throw Error("Unsupported category relation filter");
+            binds.push(v.slice(3));
+            where.push(
+              `exists (select 1 from public.post_categories pc where pc.post_id=t.id and pc.category_id=$${binds.length})`,
+            );
+          } else if (k === "or") {
             where.push(
               "(" +
                 v
