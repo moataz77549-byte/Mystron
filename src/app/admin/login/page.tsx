@@ -8,7 +8,8 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 const reasons: Record<string, string> = {
-  oauth: "تعذر بدء تسجيل الدخول عبر GitHub. تحقق من إعدادات مزود GitHub في Supabase.",
+  oauth:
+    "تعذر بدء تسجيل الدخول عبر GitHub. تحقق من إعدادات مزود GitHub في Supabase.",
   "link-invalid":
     "رابط البريد غير صالح أو انتهت صلاحيته. اطلب رابط دخول جديداً.",
   session: "انتهت الجلسة الإدارية، يرجى تسجيل الدخول مجدداً.",
