@@ -5,6 +5,7 @@ on:
       [
         main,
         fix-admin-editorial-publishing-overhaul,
+        fix/maystroon-final-production-completion,
         stage-1-foundation,
         stage-2-advanced-cms,
         stage-3-admin-security-control-center,
@@ -15,6 +16,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   verify:
     runs-on: ubuntu-latest

@@ -1,13 +1,28 @@
 name: MAYSTROON database release
 on:
   push:
-    branches: [fix-admin-editorial-publishing-overhaul]
+    branches:
+      [
+        main,
+        fix-admin-editorial-publishing-overhaul,
+        fix/maystroon-final-production-completion,
+      ]
+  pull_request:
+    paths:
+      [
+        "src/**",
+        "supabase/**",
+        "scripts/**",
+        "tests/**",
+        "package*.json",
+        ".github/workflows/database-release.yml",
+      ]
   workflow_dispatch:
 permissions:
   contents: read
   actions: read
 concurrency:
-  group: maystroon-production-database
+  group: maystroon-database-${{ github.event_name == 'pull_request' && github.ref || 'production' }}
   cancel-in-progress: false
 jobs:
   docker-acceptance:
@@ -35,7 +50,7 @@ jobs:
 
   backup-restore-dry-run:
     needs: docker-acceptance
-    if: github.ref == 'refs/heads/fix-admin-editorial-publishing-overhaul' && vars.MAYSTROON_DB_RELEASE_SHA == github.sha
+    if: github.ref == 'refs/heads/main' && vars.MAYSTROON_DB_RELEASE_SHA == github.sha
     environment: maystroon-db-backup
     runs-on: ubuntu-latest
     timeout-minutes: 45

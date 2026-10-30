@@ -63,30 +63,31 @@ export async function categories(): Promise<Category[]> {
 export async function posts(params: Record<string, string | undefined> = {}) {
   const p = querySchema.parse(params);
   const db = publicDatabase();
-  let ids: string[] | undefined;
+  let categoryId: string | undefined;
   if (p.category) {
     const { data, error } = await db
       .from("categories")
       .select("id")
       .eq("slug", p.category)
-      .single();
-    if (error || !data) return { data: [] as Post[], total: 0, ...p };
-    const links = await db
-      .from("post_categories")
-      .select("post_id")
-      .eq("category_id", data.id);
-    if (links.error) throw links.error;
-    ids = links.data.map((x) => x.post_id);
-    if (!ids.length) return { data: [] as Post[], total: 0, ...p };
+      .eq("is_active", true)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return { data: [] as Post[], total: 0, ...p };
+    categoryId = data.id;
   }
+  // Filter through the relation in PostgREST, not a capped list of link IDs.
+  // The empty embed keeps the public response shape unchanged.
   let query = db
     .from("posts")
-    .select(publicPostFields, { count: "exact" })
+    .select(publicPostFields + (categoryId ? ",post_categories!inner()" : ""), {
+      count: "exact",
+    })
     .eq("status", "published")
     .eq("visibility", "public")
     .is("deleted_at", null)
     .lte("published_at", new Date().toISOString());
-  if (ids) query = query.in("id", ids);
+  if (categoryId) query = query.eq("post_categories.category_id", categoryId);
   if (p.author) {
     const { data: a, error: e } = await db
       .from("authors")

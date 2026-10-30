@@ -21,7 +21,7 @@ import { resolve, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 export const PROJECT = "ttvasynaxkkcwrmvlorg";
-export const BRANCH = "refs/heads/fix-admin-editorial-publishing-overhaul";
+export const BRANCH = "refs/heads/main";
 export const BUCKET = "maystroon-private-release-backups";
 export const PENDING = [
   "20261020211511_editorial_tag_management.sql",

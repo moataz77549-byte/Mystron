@@ -12,8 +12,8 @@ android {
         applicationId = "com.maystroon.reader"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0-rc.1"
+        versionCode = 3
+        versionName = "1.0.0-rc.3"
         // CI narrows the release only; emulator/debug builds keep their native ABI.
         ndk { abiFilters += providers.gradleProperty("targetAbi").orNull?.split(",").orEmpty() }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -26,6 +26,15 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             // Intentionally unsigned until an owner-controlled release keystore is provisioned.
+        }
+        create("preview") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".preview"
+            versionNameSuffix = "-preview"
+            // Installable, optimized test build. Never use this key for production.
+            signingConfig = signingConfigs.getByName("debug")
+            isDebuggable = false
+            matchingFallbacks += listOf("release")
         }
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }

@@ -96,7 +96,7 @@ test("AI HTTP protocol, grounded summary, cache, admin controls and gateway repl
     ),
   ).toBe(true);
   await page.screenshot({
-    path: `docs/screenshots/stage-4-assistant-${info.project.name}-fixture.png`,
+    path: info.outputPath("stage-4-assistant-fixture.png"),
     fullPage: false,
   });
   const cached = await page.request.post("/api/v1/ai/summarize", {
@@ -133,7 +133,7 @@ test("AI HTTP protocol, grounded summary, cache, admin controls and gateway repl
       .first(),
   ).toBeVisible();
   await page.screenshot({
-    path: `docs/screenshots/stage-4-admin-${info.project.name}-fixture.png`,
+    path: info.outputPath("stage-4-admin-fixture.png"),
     fullPage: false,
   });
   // A correctly signed request works once. The same nonce is rejected by the database.

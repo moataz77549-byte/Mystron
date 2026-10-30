@@ -120,11 +120,21 @@ private val tabs = listOf(Tab("home", "الرئيسية", Icons.Default.Home), T
             }
             composable("saved") {
                 val saved by vm.saved.collectAsStateWithLifecycle()
+                val recent by vm.recent.collectAsStateWithLifecycle()
+                var showRecent by rememberSaveable { mutableStateOf(false) }
+                val articles = if (showRecent) recent else saved
                 LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     item { Text("المحفوظات", style = MaterialTheme.typography.headlineMedium) }
                     item { Text("تُحفظ النصوص على هذا الجهاز. تتطلب الصور اتصالاً ما لم تكن مخزنة مؤقتاً.", style = MaterialTheme.typography.bodySmall) }
-                    if (saved.isEmpty()) item { StatusPanel("لم تحفظ مقالات بعد. افتح مقالاً واضغط زر الحفظ.") }
-                    items(saved, key = Post::id) { post -> Column { PostCard(post) { openPost(post) }; TextButton(onClick = { vm.bookmark(post) }) { Text("إزالة من المحفوظات") } } }
+                    item { Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        FilterChip(selected = !showRecent, onClick = { showRecent = false }, label = { Text("المحفوظة") })
+                        FilterChip(selected = showRecent, onClick = { showRecent = true }, label = { Text("المقروءة مؤخراً") })
+                    } }
+                    if (articles.isEmpty()) item { StatusPanel(if (showRecent) "تظهر هنا آخر 100 مقالة قرأتها، وتتاح نصوصها دون إنترنت." else "لم تحفظ مقالات بعد. افتح مقالاً واضغط زر الحفظ.") }
+                    items(articles, key = Post::id) { post -> Column {
+                        PostCard(post) { openPost(post) }
+                        TextButton(onClick = { vm.bookmark(post) }) { Text(if (saved.any { it.id == post.id }) "إزالة من المحفوظات" else "حفظ المقال") }
+                    } }
                 }
             }
             composable("more") {

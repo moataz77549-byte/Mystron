@@ -39,11 +39,11 @@ local Gradle installation or the workflow can build it.
 
 ## Artifact labels
 
-`MAYSTROON-v1.0.0-rc.1-preview-debug.apk` is an installable developer preview signed
+`MAYSTROON-v1.0.0-rc.3-preview-debug.apk` is an installable developer preview signed
 with Android's disposable debug key and the separate `.preview` application ID.
 It is not a production release and is not suitable as a stable update channel.
 
-`MAYSTROON-v1.0.0-rc.1-release-unsigned.apk` is an optimized, non-debuggable release
+`MAYSTROON-v1.0.0-rc.3-release-unsigned.apk` is an optimized, non-debuggable release
 candidate. It is not installable until release signing is configured. No private
 release key has been created, committed, requested in chat or invented silently.
 Owner-controlled signing, final feature completion and device acceptance must
@@ -58,3 +58,11 @@ Its report does not substitute for running on a physical arm64 phone.
 Source is present. Build and emulator results must be read from the corresponding
 GitHub Actions run; adding a workflow alone is not a passing result. This document
 will be updated with actual run URLs and findings after execution.
+
+## RC.3 branch delivery
+
+The next development-branch build is `1.0.0-rc.3 (versionCode 3)`, with
+`minSdk 26` and optional `arm64-v8a` restriction for the optimized APK.
+GitHub Actions provides an installable, debug-key-signed preview APK for
+owner testing and an unsigned production APK for future owner-controlled signing.
+The Android app is not yet a complete native administration suite.

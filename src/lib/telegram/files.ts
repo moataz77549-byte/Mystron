@@ -3,6 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { privilegedDatabase } from "../supabase";
 import { MAX_IMAGE_BYTES, processImage, imageMagic } from "../media";
 import { rateLimit } from "../rate-limit";
+import { telegramRpcError } from "./errors";
 export async function telegramFile(fileId: string, limit: number) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) throw new Error("TELEGRAM_UNCONFIGURED");
@@ -73,7 +74,8 @@ export async function storeTelegramImage(
     p_telegram_id: telegramId,
     p_action: "identity",
   });
-  if (identity.error || !identity.data?.permissions?.["media.manage"])
+  if (identity.error) throw telegramRpcError(identity.error);
+  if (!identity.data?.permissions?.["media.manage"])
     throw new Error("FORBIDDEN");
   const userId = String(identity.data.user_id);
   if (!(await rateLimit("tg-upload:" + userId, 20, 60)))
@@ -129,7 +131,7 @@ export async function storeTelegramImage(
       p_command: "media",
       p_args: asset,
     });
-    if (result.error) throw new Error("REGISTER_FAILED");
+    if (result.error) throw telegramRpcError(result.error);
     if (result.data?.id !== id)
       await db.storage.from("editorial").remove(paths);
     return String(result.data.id);

@@ -6,6 +6,7 @@ const test = base.extend({
       "typing during",
       "offline draft",
       "structured literary",
+      "revision restoration",
     ].findIndex((prefix) => info.title.startsWith(prefix));
     await provide({
       "x-vercel-forwarded-for": `192.0.2.${50 + index + (info.project.name === "mobile" ? 10 : 0)}`,
@@ -198,4 +199,54 @@ test("structured literary nodes, multiple tags and references remain editable af
       path: `test-results/editor-${info.project.name}-${width}.png`,
     });
   }
+});
+
+test("revision restoration prevents new edits and duplicate requests until the server version reloads", async ({
+  page,
+}, info) => {
+  await createDraft(page, `restore-lock-${info.project.name}`);
+  await page
+    .getByLabel("العنوان", { exact: true })
+    .fill("عنوان جديد قبل الاستعادة");
+  await page.getByRole("button", { name: "حفظ الآن", exact: true }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "تم الحفظ" }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "سجل النسخ السابقة", exact: true })
+    .click();
+  const restore = page
+    .getByRole("button", { name: "استعادة", exact: true })
+    .first();
+  await expect(restore).toBeVisible();
+  let started!: () => void;
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    started = resolve;
+  });
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let requests = 0;
+  await page.route("**/api/v1/admin/revisions", async (route) => {
+    requests++;
+    started();
+    await gate;
+    await route.continue();
+  });
+  await restore.click();
+  await pending;
+  await expect(page.getByLabel("محتوى التدوينة")).toHaveAttribute(
+    "contenteditable",
+    "false",
+  );
+  await expect(restore).toBeDisabled();
+  await expect(page.locator(".studio > div[inert]")).toHaveCount(1);
+  release();
+  await expect(page.getByLabel("محتوى التدوينة")).toHaveAttribute(
+    "contenteditable",
+    "true",
+  );
+  await expect(page.getByLabel("العنوان", { exact: true })).toBeEditable();
+  expect(requests).toBe(1);
 });
