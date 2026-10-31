@@ -25,13 +25,17 @@ export async function POST(
       return failure("RATE_LIMITED", 429, { "Retry-After": "60" });
     const body = await req.text();
     if (body.length > 1000000) return failure("PAYLOAD_TOO_LARGE", 413);
-    return NextResponse.json({
-      data: await (
-        controlResources.includes((await params).resource)
-          ? controlCommand
-          : cmsCommand
-      )((await params).resource, JSON.parse(body)),
-    });
+    const resource = (await params).resource;
+    const raw = JSON.parse(body);
+    const data = controlResources.includes(resource)
+      ? await controlCommand(resource, raw)
+      : await cmsCommand(resource, raw, identity);
+    return NextResponse.json(
+      { data },
+      {
+        headers: { "Cache-Control": "private, no-store" },
+      },
+    );
   } catch (e) {
     if (e instanceof ZodError || e instanceof SyntaxError)
       return failure("INVALID_INPUT", 400);

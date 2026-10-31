@@ -2,6 +2,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest } from "next/server";
 vi.mock("server-only", () => ({}));
+vi.mock("next/cache", () => ({ unstable_cache: (fn: unknown) => fn }));
 const state = vi.hoisted(() => ({
   calls: [] as URL[],
   categoryStatus: 200,

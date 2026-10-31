@@ -2,7 +2,8 @@ import "server-only";
 import { publicDatabase } from "../supabase";
 import { databaseConfigured } from "../env";
 import { cache } from "react";
-export const publicAdvertisements = cache(async () => {
+import { unstable_cache } from "next/cache";
+const readPublicAdvertisements = async () => {
   if (!databaseConfigured()) return [];
   const { data, error } = await publicDatabase()
     .from("ticker_items")
@@ -14,4 +15,10 @@ export const publicAdvertisements = cache(async () => {
     .order("sort_order")
     .limit(100);
   return error ? [] : data || [];
-});
+};
+export const publicAdvertisements = cache(
+  unstable_cache(readPublicAdvertisements, ["publicAdvertisements-v1"], {
+    revalidate: 30,
+    tags: ["public-content"],
+  }),
+);

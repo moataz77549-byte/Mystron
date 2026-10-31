@@ -2,6 +2,7 @@
 import { EditorAiTools } from "@/components/ai/editor-tools";
 import {
   useCallback,
+  startTransition,
   useEffect,
   useMemo,
   useRef,
@@ -183,6 +184,8 @@ export default function Studio({
   const [chars, setChars] = useState(0);
   const [headings, setHeadings] = useState<{ pos: number; text: string }[]>([]);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const metricsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mediaOpen, setMediaOpen] = useState(false);
   const [imageTarget, setImageTarget] = useState("content");
   const [media, setMedia] = useState<
@@ -201,6 +204,7 @@ export default function Studio({
   }, []);
   const editor = useEditor({
     immediatelyRender: false,
+    shouldRerenderOnTransaction: false,
     onCreate: ({ editor }) => {
       const text = richText(editor.getJSON());
       setWords(text.trim().split(/\s+/).filter(Boolean).length);
@@ -210,14 +214,20 @@ export default function Studio({
     content: safeInitial,
     onUpdate: ({ editor }) => {
       docRef.current = editor.getJSON();
-      const text = richText(editor.getJSON());
-      setWords(text.trim().split(/\s+/).filter(Boolean).length);
-      setChars(text.length);
-      const h: { pos: number; text: string }[] = [];
-      editor.state.doc.descendants((n, pos) => {
-        if (n.type.name === "heading") h.push({ pos, text: n.textContent });
-      });
-      setHeadings(h);
+      // Keep input immediate; scan the document after typing pauses.
+      if (metricsTimer.current) clearTimeout(metricsTimer.current);
+      metricsTimer.current = setTimeout(() => {
+        const text = richText(docRef.current);
+        const h: { pos: number; text: string }[] = [];
+        editor.state.doc.descendants((n, pos) => {
+          if (n.type.name === "heading") h.push({ pos, text: n.textContent });
+        });
+        startTransition(() => {
+          setWords(text.trim().split(/\s+/).filter(Boolean).length);
+          setChars(text.length);
+          setHeadings(h);
+        });
+      }, 250);
       changed();
     },
     editorProps: {
@@ -361,6 +371,7 @@ export default function Studio({
   useEffect(
     () => () => {
       if (retryTimer.current) clearTimeout(retryTimer.current);
+      if (metricsTimer.current) clearTimeout(metricsTimer.current);
     },
     [],
   );
@@ -433,6 +444,13 @@ export default function Studio({
     if (transitionLock.current) return;
     transitionLock.current = true;
     setTransitionBusy(true);
+    setNotice("");
+    setError("");
+    setStatus(
+      action === "publish"
+        ? "جارٍ حفظ التدوينة ونشرها…"
+        : "جارٍ تنفيذ العملية…",
+    );
     try {
       let saved = record;
       if (dirty) {
@@ -441,18 +459,32 @@ export default function Studio({
         saved = result;
       }
       try {
-        setRecord(
-          await command("transitions", {
-            id: record.id,
-            version: saved.version,
-            action,
-            ...(action === "scheduled"
-              ? { scheduled_at: new Date(schedule + "+03:00").toISOString() }
-              : {}),
-          }),
-        );
+        const updated = await command("transitions", {
+          id: record.id,
+          version: saved.version,
+          action,
+          ...(action === "scheduled"
+            ? { scheduled_at: new Date(schedule + "+03:00").toISOString() }
+            : {}),
+        });
+        if (
+          !updated ||
+          updated.id !== record.id ||
+          !Number.isInteger(updated.version)
+        )
+          throw new AdminRequestError("INVALID_RESPONSE", 503);
+        setRecord(updated);
+        const message =
+          action === "publish" && updated.status === "published"
+            ? "تم النشر بنجاح"
+            : action === "approve"
+              ? "تم اعتماد النسخة الحالية"
+              : `تم تحديث الحالة: ${labels[updated.status] || updated.status}`;
+        setStatus(message);
+        setNotice(message);
         setError("");
       } catch (e) {
+        setStatus("تعذرت العملية");
         setError(adminErrorMessage(e));
       }
     } finally {
@@ -602,6 +634,27 @@ export default function Studio({
       className={`studio ${focus ? "distraction-free" : ""}`}
       aria-busy={saving || transitionBusy}
     >
+      <div
+        className="publish-feedback"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {transitionBusy ? (
+          <p>جارٍ حفظ التدوينة وتنفيذ العملية…</p>
+        ) : (
+          notice && <p>{notice}</p>
+        )}
+        {!transitionBusy && record.status === "published" && (
+          <a
+            href={"/posts/" + encodeURIComponent(record.slug)}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            عرض المقال المنشور ↗
+          </a>
+        )}
+      </div>
       {needsRecovery && recovery && (
         <section
           className="control-card draft-recovery"
@@ -1168,7 +1221,7 @@ export default function Studio({
                 disabled={transitionBusy || saving || conflict || !online}
                 onClick={() => void transition("publish")}
               >
-                نشر
+                {transitionBusy ? "جارٍ التنفيذ…" : "نشر"}
               </button>
               <button
                 disabled={transitionBusy || saving || conflict || !online}

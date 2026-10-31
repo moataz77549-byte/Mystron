@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { authorizedUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { sameOrigin } from "@/lib/origin";
@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
       p_expected_count: input.data.expected_count,
     });
     if (result.error) return rpcFailure(result.error);
+    revalidateTag("public-content", { expire: 0 });
     revalidatePath("/", "layout");
     return NextResponse.json(
       { data: result.data },

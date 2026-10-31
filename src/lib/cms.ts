@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { sitePageInput } from "./editorial/site-pages-schema";
 import { sourceSchema } from "./editor/sources";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { authorizedUser } from "./auth";
 import {
   validateDocument,
@@ -141,8 +141,14 @@ const base = z
       .optional(),
   })
   .strict();
-export async function cmsCommand(resource: string, raw: unknown) {
-  const identity = await authorizedUser();
+export async function cmsCommand(
+  resource: string,
+  raw: unknown,
+  authenticatedIdentity?: NonNullable<
+    Awaited<ReturnType<typeof authorizedUser>>
+  >,
+) {
+  const identity = authenticatedIdentity ?? (await authorizedUser());
   if (!identity) throw new Error("UNAUTHORIZED");
   const b = base.parse(raw);
   let rpc: string;
@@ -303,6 +309,7 @@ export async function cmsCommand(resource: string, raw: unknown) {
       known.find((c) => error.message.includes(c)) || "INVALID_OPERATION",
     );
   }
+  revalidateTag("public-content", { expire: 0 });
   revalidatePath("/", "layout");
   return data;
 }

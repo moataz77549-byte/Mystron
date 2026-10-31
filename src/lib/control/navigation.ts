@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { publicDatabase } from "../supabase";
 import { databaseConfigured } from "../env";
 export type PublicMenu = {
@@ -10,7 +11,7 @@ export type PublicMenu = {
   href: string;
   sort_order: number;
 };
-export const publicMenus = cache(async () => {
+const readPublicMenus = async () => {
   if (!databaseConfigured()) return [] as PublicMenu[];
   const { data, error } = await publicDatabase()
     .from("menu_items")
@@ -41,4 +42,10 @@ export const publicMenus = cache(async () => {
         ]
       : [];
   });
-});
+};
+export const publicMenus = cache(
+  unstable_cache(readPublicMenus, ["publicMenus-v1"], {
+    revalidate: 30,
+    tags: ["public-content"],
+  }),
+);

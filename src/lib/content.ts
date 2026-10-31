@@ -1,6 +1,7 @@
 import "server-only";
 import { compatibleCatalogRead } from "./editorial/catalog-compatibility";
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { publicDatabase } from "./supabase";
 import { databaseConfigured } from "./env";
 import { normalizeArabic } from "./editor/document";
@@ -44,7 +45,7 @@ export type Post = {
 };
 export const publicPostFields =
   "id,title,slug,excerpt,content,cover_image,published_at,featured,reading_minutes,seo_title,seo_description,content_json,subtitle,cover_asset_id,thumbnail_asset_id,share_asset_id,updated_at,canonical_url,tags,sources,allow_comments,comments_close_at,sharing,authors(display_name,slug)";
-export async function categories(): Promise<Category[]> {
+async function readCategories(): Promise<Category[]> {
   return (
     (await compatibleCatalogRead(
       "id,name,slug,description,sort_order,image_asset_id,parent_id,icon,color",
@@ -60,7 +61,7 @@ export async function categories(): Promise<Category[]> {
     )) || []
   );
 }
-export async function posts(params: Record<string, string | undefined> = {}) {
+async function readPosts(params: Record<string, string | undefined> = {}) {
   const p = querySchema.parse(params);
   const db = publicDatabase();
   let categoryId: string | undefined;
@@ -110,7 +111,7 @@ export async function posts(params: Record<string, string | undefined> = {}) {
   if (error) throw error;
   return { data: data as unknown as Post[], total: count || 0, ...p };
 }
-export async function post(slug: string) {
+async function readPost(slug: string) {
   const { data, error } = await publicDatabase()
     .from("posts")
     .select(publicPostFields)
@@ -123,7 +124,7 @@ export async function post(slug: string) {
   if (error) throw error;
   return data as unknown as Post | null;
 }
-export async function publicSettings() {
+async function readPublicSettings() {
   const { data, error } = await publicDatabase()
     .from("site_settings")
     .select("key,value")
@@ -164,7 +165,7 @@ export const homeData = cache(async () => {
   }
 });
 
-export async function popularPosts() {
+async function readPopularPosts() {
   const db = publicDatabase();
   const { data: stats, error } = await db.rpc("public_view_stats", {
     p_days: 7,
@@ -186,7 +187,7 @@ export async function popularPosts() {
     });
 }
 
-export async function featuredPost() {
+async function readFeaturedPost() {
   const { data, error } = await publicDatabase()
     .from("posts")
     .select(publicPostFields)
@@ -201,3 +202,45 @@ export async function featuredPost() {
   if (error) throw error;
   return data as unknown as Post | null;
 }
+
+export const categories = cache(
+  unstable_cache(readCategories, ["public-categories-v1"], {
+    revalidate: 30,
+    tags: ["public-content"],
+  }),
+);
+
+export const posts = cache(
+  unstable_cache(readPosts, ["public-posts-v1"], {
+    revalidate: 30,
+    tags: ["public-content"],
+  }),
+);
+
+export const post = cache(
+  unstable_cache(readPost, ["public-post-v1"], {
+    revalidate: 30,
+    tags: ["public-content"],
+  }),
+);
+
+export const publicSettings = cache(
+  unstable_cache(readPublicSettings, ["public-publicSettings-v1"], {
+    revalidate: 30,
+    tags: ["public-content"],
+  }),
+);
+
+export const popularPosts = cache(
+  unstable_cache(readPopularPosts, ["public-popularPosts-v1"], {
+    revalidate: 30,
+    tags: ["public-content"],
+  }),
+);
+
+export const featuredPost = cache(
+  unstable_cache(readFeaturedPost, ["public-featuredPost-v1"], {
+    revalidate: 30,
+    tags: ["public-content"],
+  }),
+);

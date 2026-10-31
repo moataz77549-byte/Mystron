@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import fixture from "../packages/contracts/fixtures/public-reader-page.json";
 import { publicPostPageDto } from "../packages/contracts/public-reader";
 vi.mock("server-only", () => ({}));
+vi.mock("next/cache", () => ({ unstable_cache: (fn: unknown) => fn }));
 const state = vi.hoisted(() => ({ allowed: true }));
 vi.mock("../src/lib/env", () => ({ databaseConfigured: () => true }));
 vi.mock("../src/lib/rate-limit", () => ({

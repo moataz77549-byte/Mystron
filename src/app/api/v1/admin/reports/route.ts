@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { authorizedUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { sameOrigin } from "@/lib/origin";
@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
         return failure("SCHEMA_UPDATE_REQUIRED", 503);
       return failure("SERVICE_UNAVAILABLE", 503);
     }
+    revalidateTag("public-content", { expire: 0 });
     revalidatePath("/", "layout");
     return NextResponse.json(
       { data: result.data },

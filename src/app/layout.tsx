@@ -11,7 +11,7 @@ import { Advertisements } from "@/components/control/advertisements";
 import { publicConfiguration } from "@/lib/control/settings-service";
 import { publicMenus } from "@/lib/control/navigation";
 import { PublicMenuTree } from "@/components/control/public-menu";
-import { homeData, publicSettings } from "@/lib/content";
+import { categories, publicSettings } from "@/lib/content";
 import { siteUrl, databaseConfigured } from "@/lib/env";
 export default async function Layout({
   children,
@@ -19,7 +19,7 @@ export default async function Layout({
   children: React.ReactNode;
 }) {
   const [data, configuration, menus, advertisements] = await Promise.all([
-    homeData(),
+    categories().catch(() => []),
     publicConfiguration(),
     publicMenus(),
     publicAdvertisements(),
@@ -64,7 +64,7 @@ export default async function Layout({
           انتقل إلى المحتوى
         </a>
         <Header
-          categories={data.categories}
+          categories={data}
           menus={menus}
           name={identity.name}
           description={identity.description}
@@ -91,7 +91,7 @@ export default async function Layout({
                     items={menus.filter((m) => m.location === "footer")}
                   />
                 ) : (
-                  data.categories.map((c) => (
+                  data.map((c) => (
                     <Link key={c.id} href={"/categories/" + c.slug}>
                       {c.name}
                     </Link>

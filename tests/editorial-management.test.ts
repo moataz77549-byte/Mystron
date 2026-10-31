@@ -26,6 +26,7 @@ vi.mock("../src/lib/origin", () => ({
     req.headers.get("origin") === "https://fixture.test",
 }));
 vi.mock("next/cache", () => ({
+  revalidateTag: vi.fn(),
   revalidatePath: (...args: unknown[]) => state.revalidate(...args),
 }));
 import {

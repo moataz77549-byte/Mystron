@@ -4,7 +4,11 @@ import { vector } from "@electric-sql/pglite-pgvector";
 import { readFileSync, readdirSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 vi.mock("server-only", () => ({}));
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+  unstable_cache: (fn: unknown) => fn,
+}));
 const bridge = vi.hoisted(() => ({ rpc: vi.fn() }));
 vi.mock("@/lib/supabase", () => ({
   privilegedDatabase: () => bridge,

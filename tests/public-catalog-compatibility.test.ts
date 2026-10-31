@@ -1,6 +1,9 @@
+import { vi as cacheMock } from "vitest";
+cacheMock.mock("next/cache", () => ({ unstable_cache: (fn: unknown) => fn }));
 import { expect, it, vi } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 vi.mock("server-only", () => ({}));
+vi.mock("next/cache", () => ({ unstable_cache: (fn: unknown) => fn }));
 const state = vi.hoisted(() => ({ calls: [] as URL[] }));
 vi.mock("../src/lib/supabase", () => ({
   publicDatabase: () =>

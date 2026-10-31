@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { publicDatabase } from "../supabase";
 import { databaseConfigured } from "../env";
 import {
@@ -8,8 +9,8 @@ import {
   type SettingKey,
 } from "./settings-schema";
 import { requirePermission } from "../auth";
-import { revalidatePath } from "next/cache";
-export const publicConfiguration = cache(async () => {
+import { revalidatePath, revalidateTag } from "next/cache";
+const readPublicConfiguration = async () => {
   const defaults = {
     identity: settingSchemas.identity.parse(settingDefaults.identity),
     home: settingSchemas.home.parse(settingDefaults.home),
@@ -29,7 +30,13 @@ export const publicConfiguration = cache(async () => {
     if (parsed.success) Object.assign(defaults, { [key]: parsed.data });
   }
   return defaults;
-});
+};
+export const publicConfiguration = cache(
+  unstable_cache(readPublicConfiguration, ["publicConfiguration-v1"], {
+    revalidate: 30,
+    tags: ["public-content"],
+  }),
+);
 export async function updateSetting(
   key: SettingKey,
   value: unknown,
@@ -49,6 +56,7 @@ export async function updateSetting(
     p_expected_version: version,
   });
   if (result.error) throw new Error(result.error.message);
+  revalidateTag("public-content", { expire: 0 });
   revalidatePath("/", "layout");
   return result.data;
 }

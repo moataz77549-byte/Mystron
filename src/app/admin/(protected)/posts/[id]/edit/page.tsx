@@ -28,15 +28,11 @@ export default async function Edit({
   if (p.error || !p.data) notFound();
   if (a.error || c.error || links.error)
     throw new Error("تعذر تحميل خيارات التحرير");
-  const readable = await db.rpc("admin_can_post", {
-    p_id: id,
-    p_permission: "posts.read",
-  });
+  const [readable, editable] = await Promise.all([
+    db.rpc("admin_can_post", { p_id: id, p_permission: "posts.read" }),
+    db.rpc("admin_can_post", { p_id: id, p_permission: "posts.update" }),
+  ]);
   if (!readable.data) notFound();
-  const editable = await db.rpc("admin_can_post", {
-    p_id: id,
-    p_permission: "posts.update",
-  });
   if (
     !editable.data ||
     (p.data.status === "published" && !permissions["posts.publish"])

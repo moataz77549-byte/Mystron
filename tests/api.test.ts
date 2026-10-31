@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 vi.mock("server-only", () => ({}));
+vi.mock("next/cache", () => ({ unstable_cache: (fn: unknown) => fn }));
 const controls = vi.hoisted(() => ({ configured: true, allowed: true }));
 vi.mock("../src/lib/env", () => ({
   databaseConfigured: () => controls.configured,

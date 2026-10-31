@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { privilegedDatabase } from "@/lib/supabase";
 import { failure } from "@/lib/api";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   const token = req.headers.get("authorization") || "";
@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
   try {
     const { data, error } = await privilegedDatabase().rpc("run_due_posts");
     if (error) throw error;
+    revalidateTag("public-content", { expire: 0 });
     revalidatePath("/", "layout");
     return NextResponse.json({ data });
   } catch {

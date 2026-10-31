@@ -2,7 +2,11 @@ import { it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 vi.mock("server-only", () => ({}));
 vi.mock("../src/lib/rate-limit", () => ({ rateLimit: async () => true }));
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+  unstable_cache: (fn: unknown) => fn,
+}));
 const state = vi.hoisted(() => ({
   signedIn: false,
   args: null as unknown,

@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { databaseConfigured } from "./env";
 import { sessionDatabase } from "./supabase";
@@ -17,7 +18,7 @@ type AuthorizedIdentity = {
   permissions: AdminIdentity["permissions"];
   access: AdminIdentity;
 };
-async function resolveAdmin(): Promise<{
+async function readAdmin(): Promise<{
   identity: AuthorizedIdentity | null;
   reason?: "session" | "email" | "access" | "service";
 }> {
@@ -52,6 +53,7 @@ async function resolveAdmin(): Promise<{
     return { identity: null, reason: "service" };
   }
 }
+const resolveAdmin = cache(readAdmin);
 export async function authorizedUser() {
   return (await resolveAdmin()).identity;
 }

@@ -4,7 +4,7 @@ import { randomBytes, createHash } from "node:crypto";
 import { requirePermission } from "../auth";
 import { privilegedDatabase, publicDatabase } from "../supabase";
 import { siteUrl } from "../env";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { updateSetting } from "./settings-service";
 import { settingSchemas, type SettingKey } from "./settings-schema";
 import {
@@ -337,6 +337,7 @@ export async function controlCommand(resource: string, input: unknown) {
     }
   } else throw new Error("NOT_FOUND");
   const data = checked(result);
+  revalidateTag("public-content", { expire: 0 });
   revalidatePath("/", "layout");
   return data ?? { saved: true };
 }

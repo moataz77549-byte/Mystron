@@ -76,10 +76,22 @@ test("editorial workflow uses real PostgreSQL RPC/RLS with local Auth/Storage fi
   await page.getByRole("button", { name: "معاينة الهاتف" }).click();
   await expect(page.locator(".article-preview")).toContainText("إبْداع عربي");
   await page.getByRole("button", { name: "معاينة الهاتف" }).click();
+  // Cache the draft's public 404 before publishing to verify immediate invalidation.
+  expect(
+    (
+      await request.get("/api/v1/posts/browser-post-" + info.project.name)
+    ).status(),
+  ).toBe(404);
   await page.getByRole("button", { name: "نشر", exact: true }).click();
   await expect(
     page.getByRole("status").filter({ hasText: "منشورة" }),
   ).toBeVisible();
+  await expect(page.locator(".publish-feedback")).toContainText(
+    "تم النشر بنجاح",
+  );
+  await expect(
+    page.getByRole("link", { name: "عرض المقال المنشور ↗" }),
+  ).toHaveAttribute("href", "/posts/browser-post-" + info.project.name);
   await page.locator(".studio-top").scrollIntoViewIfNeeded();
   await page.screenshot({
     path: `test-results/cms-${info.project.name}.png`,
@@ -143,7 +155,10 @@ test("editorial workflow uses real PostgreSQL RPC/RLS with local Auth/Storage fi
   await page.goto(`/admin/posts/${id}/edit`);
   await page.getByRole("button", { name: "إلغاء النشر", exact: true }).click();
   await expect(
-    page.getByRole("status").filter({ hasText: "غير منشورة" }),
+    page
+      .locator(".studio-top")
+      .getByRole("status")
+      .filter({ hasText: "غير منشورة" }),
   ).toBeVisible();
   const result = await request.get(
     "/api/v1/posts/browser-post-" + info.project.name,
@@ -152,7 +167,10 @@ test("editorial workflow uses real PostgreSQL RPC/RLS with local Auth/Storage fi
   await page.getByLabel("موعد النشر — عدن UTC+3").fill("2099-01-01T12:00");
   await page.getByRole("button", { name: "جدولة", exact: true }).click();
   await expect(
-    page.getByRole("status").filter({ hasText: "مجدولة" }),
+    page
+      .locator(".studio-top")
+      .getByRole("status")
+      .filter({ hasText: "مجدولة" }),
   ).toBeVisible();
   const cron = await request.get("/api/v1/cron/publish", {
     headers: { authorization: "Bearer fixture-only-cron-secret-32-characters" },
@@ -161,6 +179,9 @@ test("editorial workflow uses real PostgreSQL RPC/RLS with local Auth/Storage fi
   expect(await cron.json()).toMatchObject({ data: 0 });
   await page.getByRole("button", { name: "إلغاء الجدولة / مسودة" }).click();
   await expect(
-    page.getByRole("status").filter({ hasText: "مسودة" }),
+    page
+      .locator(".studio-top")
+      .getByRole("status")
+      .filter({ hasText: "مسودة" }),
   ).toBeVisible();
 });
