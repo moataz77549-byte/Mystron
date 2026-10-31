@@ -39,11 +39,11 @@ local Gradle installation or the workflow can build it.
 
 ## Artifact labels
 
-`MAYSTROON-v1.0.0-rc.3-preview-debug.apk` is an installable developer preview signed
+`MAYSTROON-v1.0.0-rc.4-preview-debug.apk` is an installable developer preview signed
 with Android's disposable debug key and the separate `.preview` application ID.
 It is not a production release and is not suitable as a stable update channel.
 
-`MAYSTROON-v1.0.0-rc.3-release-unsigned.apk` is an optimized, non-debuggable release
+`MAYSTROON-v1.0.0-rc.4-release-unsigned.apk` is an optimized, non-debuggable release
 candidate. It is not installable until release signing is configured. No private
 release key has been created, committed, requested in chat or invented silently.
 Owner-controlled signing, final feature completion and device acceptance must
@@ -66,3 +66,13 @@ The next development-branch build is `1.0.0-rc.3 (versionCode 3)`, with
 GitHub Actions provides an installable, debug-key-signed preview APK for
 owner testing and an unsigned production APK for future owner-controlled signing.
 The Android app is not yet a complete native administration suite.
+
+## RC.4 native website-link handoff
+
+Website article URLs under `https://mystron-henna.vercel.app/posts/{slug}`
+can open the native Jetpack Compose article reader from an Android HTTPS intent.
+The app validates the trusted host and slug, then fetches content from the same
+production REST API. This is **not** a WebView. Android verified App Links
+require a future production signing certificate and assetlinks.json; this
+preview uses normal user-selected link resolution. The build and tests on main
+are triggered by each main push; installed APK binaries do not self-update.

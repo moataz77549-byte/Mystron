@@ -10,6 +10,14 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Explicit HTTPS entry to a native Compose article screen; domain verification awaits a release signing certificate. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="mystron-henna.vercel.app"
+                    android:pathPrefix="/posts/" />
+            </intent-filter>
         </activity>
     </application>
 </manifest>

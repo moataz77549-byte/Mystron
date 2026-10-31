@@ -47,14 +47,23 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 
 const val PLATFORM_COPYRIGHT = "© معتز العلقمي — اليمن، تعز — 2026م"
 class MainActivity : ComponentActivity() {
+    private var incomingArticle by mutableStateOf<String?>(null)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        incomingArticle = postSlugFromSiteLink(intent.dataString)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        incomingArticle = postSlugFromSiteLink(intent?.dataString)
         setContent {
             val vm: ReaderViewModel = viewModel()
             val prefs by vm.settings.collectAsStateWithLifecycle()
             MaystroonTheme(prefs.dark ?: isSystemInDarkTheme()) {
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) { ReaderApp(vm, prefs) }
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) { ReaderApp(vm, prefs, incomingArticle) { incomingArticle = null } }
             }
         }
     }
@@ -64,8 +73,14 @@ private val tabs = listOf(Tab("home", "الرئيسية", Icons.Default.Home), T
     Tab("search", "البحث", Icons.Default.Search), Tab("saved", "المحفوظات", Icons.Default.Bookmarks), Tab("more", "المزيد", Icons.Default.MoreHoriz))
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable fun ReaderApp(vm: ReaderViewModel, prefs: Preferences) {
+@Composable fun ReaderApp(vm: ReaderViewModel, prefs: Preferences, articleSlug: String? = null, onLinkConsumed: () -> Unit = {}) {
     val nav = rememberNavController()
+    LaunchedEffect(articleSlug) {
+        if (articleSlug != null) {
+            nav.navigate("article/" + encodeSegment(articleSlug)) { launchSingleTop = true }
+            onLinkConsumed()
+        }
+    }
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route ?: "home"
     val notice by vm.notice.collectAsStateWithLifecycle()
